@@ -28,6 +28,7 @@ const actions: { title: string; copy: string; image: string; bg: string; to?: st
     copy: 'Trade directly with verified buyers and sellers.',
     image: '/assets/icon-trade.png',
     bg: '#FFF6DE',
+    to: '/trade/enwr',
   },
   {
     title: 'Repay Loan',
@@ -56,23 +57,23 @@ export function DashboardPage() {
   return (
     <DashboardShell section="home">
         <main className="min-w-0 flex-1 px-5 pt-5 pb-8">
-          <div className="flex items-start justify-between">
+          <div className="grid w-[1200px] grid-cols-[880px_300px] gap-5">
             <div>
-              <h1 className="text-[24px] leading-none font-bold">Good Morning, Suraj</h1>
-              <p className="mt-2 text-[15px] text-[#667085]">
-                Here&apos;s what&apos;s happening with your farm today.
-              </p>
-            </div>
-            <button type="button" className="mt-1 flex items-center gap-1.5 text-[14px] leading-[17px] text-[#344054]">
-              <PinIcon className="size-3.5 text-[#1F8955]" />
-              Dichaon Kalan
-              <span className="text-[10px] text-[#667085]">▾</span>
-            </button>
-          </div>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h1 className="text-[24px] leading-[29px] font-bold">Good Morning, Suraj</h1>
+                  <p className="mt-[10px] text-[14px] leading-[19px] text-[#667085]">
+                    Here&apos;s what&apos;s happening with your farm today.
+                  </p>
+                </div>
+                <button type="button" className="mt-1 flex items-center gap-1.5 text-[14px] leading-[17px] text-[#344054]">
+                  <PinIcon className="size-3.5 text-[#1F8955]" />
+                  Dichaon Kalan
+                  <span className="text-[10px] text-[#667085]">▾</span>
+                </button>
+              </div>
 
-          <div className="mt-4 grid grid-cols-[1fr_300px] gap-5">
-            <div>
-              <div className="grid grid-cols-[250px_250px_1fr] gap-5">
+              <div className="mt-5 grid grid-cols-[250px_250px_340px] gap-5">
                 <article className="flex h-[200px] flex-col rounded-[16px] bg-white px-[15px] pt-[15px] pb-4">
                   <p className="flex items-center gap-2 text-[15px] leading-[19px] font-semibold">
                     <CloudMiniIcon className="size-[15px] text-[#7CC4F0]" />
@@ -140,14 +141,16 @@ export function DashboardPage() {
 
               <div className="mt-6 flex items-center justify-between">
                 <h2 className="text-[24px] font-bold">Market Prices</h2>
-                <button type="button" className="text-[13px] font-medium text-[#1F8955]">
+                <Link to="/marketplace" className="text-[13px] font-medium text-[#1F8955]">
                   View Details →
-                </button>
+                </Link>
               </div>
               <div className="mt-3 grid grid-cols-4 gap-5">
                 {prices.map(([name, grade, price, market, image]) => (
                   <article key={name} className="overflow-hidden rounded-[14px] bg-white shadow-[0_6px_16px_rgba(16,24,40,0.05)]">
-                    <img src={image} alt="" className="h-[159px] w-full object-cover" />
+                    <div className="h-[159px] overflow-hidden">
+                      <img src={image} alt="" className="h-full w-full object-cover" />
+                    </div>
                     <div className="px-3 py-2.5">
                       <p className="text-[15px] font-semibold">{name}</p>
                       <p className="text-[12px] text-[#98A2B3]">{grade}</p>
@@ -160,7 +163,7 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <aside className="grid content-start gap-4">
+            <aside className="grid content-start gap-5">
               <article className="h-[278px] rounded-[16px] bg-white px-[15px] pt-[15px]">
                 <div className="flex items-center justify-between border-b border-[#F2F4F7] pb-2.5">
                   <h2 className="text-[20px] leading-[29px] font-bold">Your Activity</h2>

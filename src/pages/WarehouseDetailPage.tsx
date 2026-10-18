@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { DashboardShell } from '../components/DashboardShell'
 import { BoxIcon, PinIcon, ShieldIcon, WarehouseIcon } from '../components/Icons'
+import { saveBooking } from '../data/bookings'
 import { warehouseById, warehouses, type Warehouse } from '../data/warehouses'
 
 const tabs = ['Overview', 'Inventory', 'Amenities', 'Licenses', 'Location', 'Nearby Warehouses', 'Reviews']
@@ -104,14 +105,16 @@ export function WarehouseDetailPage() {
 
   return (
     <DashboardShell section="store">
-      <main className="min-w-0 flex-1 px-5 pt-4 pb-10">
-        <div className="flex items-center gap-6 text-[14px] leading-[15px]">
+      <main className="min-w-0 flex-1 px-5 pt-[15px] pb-10">
+        <div className="flex items-center gap-2 text-[14px] leading-[15px]">
           <Link to="/dashboard" className="text-[#667085]">
             Store
           </Link>
+          <span className="text-[#98A2B3]">&gt;</span>
           <Link to="/store" className="text-[#667085]">
             Warehouse
           </Link>
+          <span className="text-[#98A2B3]">&gt;</span>
           <span className="font-semibold text-[#1F8955]">Warehouse Details</span>
         </div>
 
@@ -399,6 +402,7 @@ function Panel({ children }: { children: ReactNode }) {
 }
 
 function BookNowModal({ warehouse, onClose }: { warehouse: Warehouse; onClose: () => void }) {
+  const navigate = useNavigate()
   const [location, setLocation] = useState(warehouse.location)
   const [commodity, setCommodity] = useState('')
   const [quantity, setQuantity] = useState('')
@@ -419,7 +423,14 @@ function BookNowModal({ warehouse, onClose }: { warehouse: Warehouse; onClose: (
         onClick={(event) => event.stopPropagation()}
         onSubmit={(event) => {
           event.preventDefault()
-          onClose()
+          saveBooking({
+            commodity: commodity || 'Wheat',
+            warehouse: warehouse.name,
+            location: warehouse.shortLocation || location,
+            date: date || '21/09/2026',
+            quantity: quantity || '500',
+          })
+          navigate('/store/booking')
         }}
       >
         <h2 className="text-center text-[24px] leading-[29px] font-bold">Book Now</h2>

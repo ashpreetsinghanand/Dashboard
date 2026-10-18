@@ -68,7 +68,7 @@ export function DesktopPage() {
           <img src="/assets/hero.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/15 to-transparent" />
           <header className="relative z-10 flex h-[60px] items-center justify-end gap-6 px-[32px] text-white">
-            <Link to="/dashboard" className="text-[16px]">
+            <Link to="/login" className="text-[16px]">
               Sign In
             </Link>
             <Link

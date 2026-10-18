@@ -65,11 +65,12 @@ export function FindWarehousePage() {
 
   return (
     <DashboardShell section="store">
-      <main className="min-w-0 flex-1 px-5 pt-4 pb-8">
-        <div className="flex items-center gap-6 text-[14px] leading-[15px]">
+      <main className="min-w-0 flex-1 px-5 pt-[15px] pb-8">
+        <div className="flex items-center gap-2 text-[14px] leading-[15px]">
           <Link to="/dashboard" className="text-[#667085]">
             Store
           </Link>
+          <span className="text-[#98A2B3]">&gt;</span>
           <span className="font-semibold text-[#1F8955]">Warehouse</span>
         </div>
 
