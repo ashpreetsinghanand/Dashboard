@@ -72,7 +72,8 @@ export function RequireAuth({ roles, children }: { roles?: Role[]; children: Rea
   const { user, restoring } = useAuth()
   const location = useLocation()
   if (restoring) return null
-  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  // keep the query too, so /marketplace?q=Coffee comes back with its search after sign-in
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }

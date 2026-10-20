@@ -16,8 +16,7 @@ export function PublicHeader({ active }: { active?: 'signin' | 'signup' }) {
     <header className="flex h-[60px] items-center justify-between bg-white px-10">
       <KrsiLogo to="/" />
       <nav className="flex items-center gap-10 text-[15px] text-[#1E1E1E]">
-        <Link to="/store">Find Warehouse</Link>
-        <Link to="/#about">About</Link>
+        <Link to="/#trending">Commodities</Link>
         <Link to="/#contact">Contact Us</Link>
         <Link to="/login" className={active === 'signin' ? 'font-semibold text-[#0E4F38]' : ''}>
           Sign In

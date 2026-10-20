@@ -40,9 +40,10 @@ export default function App() {
       <Route path="/signup/phone" element={<PhonePage />} />
       <Route path="/signup/otp" element={<OtpPage />} />
       <Route path="/signup/password" element={<PasswordPage />} />
-      <Route path="/store" element={<FindWarehousePage />} />
-      <Route path="/store/:id" element={<WarehouseDetailPage />} />
-      <Route path="/marketplace" element={<MarketplacePage />} />
+      {/* the app pages need a session; signed-out visitors land on sign-in and come back here afterwards */}
+      <Route path="/store" element={p(<FindWarehousePage />)} />
+      <Route path="/store/:id" element={p(<WarehouseDetailPage />)} />
+      <Route path="/marketplace" element={p(<MarketplacePage />)} />
 
       <Route path="/dashboard" element={p(<DashboardPage />)} />
       <Route path="/store/booking" element={p(<BookingRequestPage />)} />
