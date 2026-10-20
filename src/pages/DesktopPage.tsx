@@ -1,19 +1,8 @@
+import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  BankIcon,
-  BoxIcon,
-  DiscordIcon,
-  GlobeIcon,
-  MailIcon,
-  PeopleIcon,
-  PhoneIcon,
-  PinIcon,
-  ShieldIcon,
-  TelegramIcon,
-  WarehouseIcon,
-  XIcon,
-  YoutubeIcon,
-} from '../components/Icons'
+import { DiscordIcon, LinkedinIcon, TelegramIcon, XIcon } from '../components/Icons'
+
+const supportEmail = 'support@krsi.com'
 
 const ticker = [
   { name: 'Coffee', image: '/assets/coffee.png' },
@@ -43,78 +32,106 @@ const listings = [
 ]
 
 const trusts = [
-  { title: 'Quality Verified', copy: 'Third party inspection', icon: ShieldIcon },
-  { title: 'Warehouse Backed', copy: 'WDRA registered', icon: WarehouseIcon },
-  { title: 'Transparent Pricing', copy: 'Live Market Data', icon: PeopleIcon },
-  { title: 'Worldwide Reach', copy: 'From farm to global markets', icon: GlobeIcon },
+  { title: 'Quality Verified', copy: 'Third party inspection', icon: 'quality-verified' },
+  { title: 'Warehouse Backed', copy: 'WDRA registered', icon: 'warehouse-backed' },
+  { title: 'Transparent Pricing', copy: 'Live Market Data', icon: 'transparent-pricing' },
+  { title: 'Worldwide Reach', copy: 'From farm to global markets', icon: 'worldwide-reach' },
 ]
 
 const heroPoints = [
-  { label: 'Verified Inventory', icon: BoxIcon },
-  { label: 'Trusted Warehouses', icon: WarehouseIcon },
-  { label: 'Secure Payment', icon: ShieldIcon },
-  { label: 'Trade & Finance', icon: GlobeIcon },
+  { label: 'Verified Inventory', icon: 'verified-inventory' },
+  { label: 'Trusted Warehouses', icon: 'trusted-warehouses' },
+  { label: 'Secure Payment', icon: 'secure-payment' },
+  { label: 'Trade & Finance', icon: 'trade-finance' },
 ]
+
+const contacts = [
+  { icon: 'phone', title: '+91 98737373140', copy: 'Mon - Sat, 9:00 AM - 6:00 PM (IST)' },
+  { icon: 'mail', title: supportEmail, copy: 'We typically respond within 24 hours' },
+  { icon: 'location', title: 'Delhi , India', copy: 'Building a global agri marketplace' },
+]
+
+const subjects = ['Buying commodities', 'Selling or listing commodities', 'Warehouse storage', 'Financing', 'Partnerships', 'Other']
+
+const footerLinks: [string, string[]][] = [
+  ['Marketplace', ['Explore', 'Commodities', 'Auctions', 'Warehouses', 'Market Data']],
+  ['Company', ['About', 'Careers', 'Blog', 'Contact', 'Partners']],
+  ['Resources', ['Help Centre', 'Documentation', 'Market Insights', 'API', 'Terms & Privacy']],
+]
+
+const darkGreen = 'bg-[#0E4F38]'
+const field = 'mt-1.5 block h-10 w-full rounded-[8px] border border-[#E4E7EC] px-3 text-[14px] outline-none placeholder:text-[#98A2B3] focus:border-[#1F8955]'
+
+function icon(name: string) {
+  return `/assets/icons/${name}.png`
+}
 
 function CommodityThumb({ src }: { src: string }) {
   return <img src={src} alt="" className="size-[28px] rounded-[6px] object-cover" />
 }
 
+/** No contact endpoint exists yet, so the form opens a pre-filled mail draft to support; nothing is sent until the visitor sends it. */
+function draftMail(event: FormEvent<HTMLFormElement>, subject: string) {
+  event.preventDefault()
+  const data = new FormData(event.currentTarget)
+  const body = [...data.entries()].map(([key, value]) => `${key}: ${String(value)}`).join('\n')
+  window.location.href = `mailto:${supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}
+
 export function DesktopPage() {
   return (
-    <div className="min-h-screen bg-[#F4F6F5]">
-      <div className="mx-auto w-[1440px] bg-[#F4F6F5] pb-16">
-        <section className="relative h-[660px] overflow-hidden">
-          <img src="/assets/hero.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/15 to-transparent" />
-          <header className="relative z-10 flex h-[60px] items-center justify-end gap-6 px-[32px] text-white">
-            <Link to="/login" className="text-[16px]">
-              Sign In
-            </Link>
-            <Link
-              to="/signup"
-              className="grid h-10 w-[90px] place-items-center rounded-[6px] bg-[#1F8955] text-[16px] font-medium"
-            >
-              Sign Up
-            </Link>
-          </header>
-          <div className="relative z-10 px-[70px] pt-[60px]">
-            <h1 className="max-w-[681px] text-[48px] leading-[58px] font-bold text-white">
-              The Global Marketplace
-              <br />
-              For Agricultural commodities
-            </h1>
-            <p className="mt-5 max-w-[319px] text-[14px] leading-[19px] text-white/90">
-              Buy, Sell and Finance verified agricultural commodities from trusted warehouses.
-            </p>
-            <div className="mt-5 flex gap-[25px]">
-              <a
-                href="#trending"
-                className="grid h-10 w-[180px] place-items-center rounded-[6px] bg-[#1F8955] text-[15px] font-medium text-white"
-              >
-                Explore Marketplace
-              </a>
-              <button
-                type="button"
-                className="h-10 w-[180px] rounded-[6px] border border-white text-[15px] text-white"
-              >
-                List Commodity
-              </button>
-            </div>
-            <div className="mt-6 flex items-center gap-[15px] text-[15px] leading-[19px] text-white">
-              {heroPoints.map((item) => (
-                <span key={item.label} className="flex items-center gap-1.5">
-                  <span className="grid size-10 place-items-center rounded-full border border-white/80">
-                    <item.icon className="size-5" />
-                  </span>
-                  {item.label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
+    <div className="min-h-screen bg-[#F4F6F5] pb-16">
+      <header className="flex h-[60px] items-center justify-between bg-white px-10">
+        <Link to="/" className="flex items-center gap-1.5">
+          <img src="/assets/krsi-mark.png" alt="" className="size-6" />
+          <span className="text-[22px] leading-none font-extrabold text-[#1E1E1E] italic">Krsi</span>
+        </Link>
+        <nav className="flex items-center gap-10 text-[15px] text-[#1E1E1E]">
+          <Link to="/store">Find Warehouse</Link>
+          <a href="#about">About</a>
+          <a href="#contact">Contact Us</a>
+          <Link to="/login">Sign In</Link>
+          <Link to="/signup" className={`grid h-10 w-[90px] place-items-center rounded-[6px] ${darkGreen} font-medium text-white`}>
+            Sign Up
+          </Link>
+        </nav>
+      </header>
 
-        <section className="relative z-10 mx-[70px] -mt-[48px] grid h-[100px] grid-cols-4 items-center rounded-[12px] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.08)]">
+      <section className="relative h-[600px] overflow-hidden">
+        <img src="/assets/hero.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/15 to-transparent" />
+        <div className="relative z-10 px-[70px] pt-[60px]">
+          <h1 className="max-w-[681px] text-[48px] leading-[58px] font-bold text-white">
+            The Global Marketplace
+            <br />
+            For Agricultural commodities
+          </h1>
+          <p className="mt-5 max-w-[319px] text-[14px] leading-[19px] text-white/90">
+            Buy, Sell and Finance verified agricultural commodities from trusted warehouses.
+          </p>
+          <div className="mt-5 flex gap-[25px]">
+            <a href="#trending" className="grid h-10 w-[180px] place-items-center rounded-[6px] bg-[#1F8955] text-[15px] font-medium text-white">
+              Explore Marketplace
+            </a>
+            <Link to="/trade/listing" className="grid h-10 w-[180px] place-items-center rounded-[6px] border border-white text-[15px] text-white">
+              List Commodity
+            </Link>
+          </div>
+          <div className="mt-6 flex items-center gap-[15px] text-[15px] leading-[19px] text-white">
+            {heroPoints.map((item) => (
+              <span key={item.label} className="flex items-center gap-1.5">
+                <span className="grid size-10 place-items-center rounded-full border border-white/80">
+                  <img src={icon(item.icon)} alt="" className="size-5" />
+                </span>
+                {item.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="px-[70px]">
+        <section className="relative z-10 -mt-[48px] grid h-[100px] grid-cols-4 items-center rounded-[12px] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.08)]">
           {[
             ['$ 428 Cr', 'Total marketplace value'],
             ['126,450 MT', 'Available Inventory'],
@@ -128,7 +145,7 @@ export function DesktopPage() {
           ))}
         </section>
 
-        <section className="mx-[70px] mt-5 grid h-20 grid-cols-4 overflow-hidden rounded-[12px] bg-white">
+        <section className="mt-5 grid h-20 grid-cols-4 overflow-hidden rounded-[12px] bg-white">
           {ticker.map((item) => (
             <div key={item.name} className="flex items-center gap-[15px] px-[15px]">
               <img src={item.image} alt="" className="size-[50px] rounded-[8px] object-cover" />
@@ -141,21 +158,19 @@ export function DesktopPage() {
           ))}
         </section>
 
-        <section id="trending" className="mx-[70px] mt-8">
+        <section id="trending" className="mt-8">
           <div className="flex items-end justify-between">
             <h2 className="text-[24px] font-bold">Trending Commodities</h2>
-            <button type="button" className="flex items-center gap-2 text-[15px] leading-[19px] text-[#667085]">
-              View All <span aria-hidden="true">→</span>
-            </button>
+            <Link to="/marketplace" className="flex items-center gap-2 text-[15px] leading-[19px] text-[#0E4F38]">
+              View All <span aria-hidden="true">⟶</span>
+            </Link>
           </div>
           <div className="mt-2.5 flex gap-2.5">
             {filters.map((filter, index) => (
               <button
                 key={filter}
                 type="button"
-                className={`h-10 rounded-[8px] px-4 text-[15px] leading-[19px] ${
-                  index === 0 ? 'bg-[#1F8955] text-white' : 'bg-white text-[#344054]'
-                }`}
+                className={`h-9 rounded-full px-5 text-[14px] leading-[19px] ${index === 0 ? `${darkGreen} text-white` : 'bg-[#EAECF0] text-[#98A2B3]'}`}
               >
                 {filter}
               </button>
@@ -176,7 +191,7 @@ export function DesktopPage() {
           </div>
         </section>
 
-        <section className="mx-[70px] mt-[50px] grid grid-cols-[773px_507px] gap-5">
+        <section className="mt-[50px] grid grid-cols-[1.52fr_1fr] gap-5">
           <article className="rounded-[16px] bg-white p-4">
             <h2 className="px-2 text-[24px] font-bold">Recent Listings</h2>
             <div className="mt-3 grid h-10 grid-cols-[1.4fr_1.2fr_0.8fr_0.55fr_0.9fr_0.7fr] items-center rounded-[8px] bg-[#F4F6F8] px-4 text-[14px] leading-[19px] text-[#667085]">
@@ -189,10 +204,7 @@ export function DesktopPage() {
             </div>
             <div className="mt-2">
               {listings.map(([name, image]) => (
-                <div
-                  key={name}
-                  className="grid h-[50px] grid-cols-[1.4fr_1.2fr_0.8fr_0.55fr_0.9fr_0.7fr] items-center px-1 text-[14px] leading-[17px]"
-                >
+                <div key={name} className="grid h-[50px] grid-cols-[1.4fr_1.2fr_0.8fr_0.55fr_0.9fr_0.7fr] items-center px-4 text-[14px] leading-[17px]">
                   <span className="flex items-center gap-2 font-medium">
                     <CommodityThumb src={image} />
                     {name}
@@ -208,12 +220,10 @@ export function DesktopPage() {
           </article>
           <article className="rounded-[16px] bg-white p-4">
             <h2 className="px-2 text-[24px] font-bold">Market Insights</h2>
-            <div className="mt-3 inline-flex h-10 items-center rounded-[8px] bg-[#1F8955] px-4 text-[14px] leading-[19px] text-white">
-              Commodities
-            </div>
+            <div className={`mt-3 inline-flex h-9 items-center rounded-full ${darkGreen} px-5 text-[14px] leading-[19px] text-white`}>Commodities</div>
             <div className="mt-2">
               {listings.map(([name, image]) => (
-                <div key={name} className="flex h-[50px] items-center justify-between px-2 text-[14px] leading-[17px]">
+                <div key={name} className="grid h-[50px] grid-cols-[1.2fr_1.2fr_auto] items-center px-2 text-[14px] leading-[17px]">
                   <span className="flex items-center gap-2 font-medium">
                     <CommodityThumb src={image} />
                     {name}
@@ -226,14 +236,12 @@ export function DesktopPage() {
           </article>
         </section>
 
-        <section className="mx-[70px] mt-[50px] grid grid-cols-[773px_508px] gap-[19px]">
+        <section id="about" className="mt-[50px] grid grid-cols-[1.52fr_1fr] gap-5">
           <article className="relative h-[250px] overflow-hidden rounded-[16px]">
             <img src="/assets/hero.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
             <div className="absolute inset-0 bg-black/40" />
             <div className="relative px-6 pt-[50px] text-white">
-              <h2 className="max-w-[272px] text-[24px] leading-[29px] font-bold">
-                From Farm to Global Markets
-              </h2>
+              <h2 className="max-w-[272px] text-[24px] leading-[29px] font-bold">From Farm to Global Markets</h2>
               <p className="mt-4 max-w-[358px] text-[14px] leading-[19px] text-white/90">
                 Empowering farmers, traders and businesses with transparent and efficient agriculture trade.
               </p>
@@ -248,29 +256,27 @@ export function DesktopPage() {
               </button>
             </div>
           </article>
-          <article className="flex h-[250px] items-start gap-5 rounded-[16px] bg-[#0E4F38] px-5 pt-[50px] text-white">
-            <span className="grid size-[50px] shrink-0 place-items-center rounded-[10px] bg-white/10">
-              <BankIcon className="size-7" />
-            </span>
+          <article className={`flex h-[250px] items-start gap-5 rounded-[16px] ${darkGreen} px-6 pt-[50px] text-white`}>
+            <img src={icon('bank')} alt="" className="size-[42px] shrink-0" />
             <div>
               <h2 className="text-[24px] leading-[29px] font-bold">Need financing?</h2>
               <p className="mt-4 max-w-[301px] text-[14px] leading-[19px] text-white/85">
                 Up to 75% inventory financing available Indicative loan: $1 million.
               </p>
-              <button
-                type="button"
+              <Link
+                to="/trade/loans"
                 className="mt-4 flex h-10 w-[150px] items-center justify-center gap-2 rounded-[8px] border border-white text-[14px] leading-[19px]"
               >
                 Get Financing <span aria-hidden="true">→</span>
-              </button>
+              </Link>
             </div>
           </article>
         </section>
 
-        <section className="mx-[70px] mt-[50px] grid h-20 grid-cols-4 items-center rounded-[12px] bg-[#E7F6EE] px-5">
+        <section className="mt-[50px] grid h-20 grid-cols-4 items-center rounded-[12px] bg-[#E7F6EE] px-5">
           {trusts.map((item) => (
             <div key={item.title} className="flex items-center gap-3">
-              <item.icon className="size-8 shrink-0 text-[#1E1E1E]" />
+              <img src={icon(item.icon)} alt="" className="size-9 shrink-0" />
               <div>
                 <p className="text-[15px] leading-[17px] font-semibold">{item.title}</p>
                 <p className="mt-1 text-[13px] leading-[17px] text-[#667085]">{item.copy}</p>
@@ -279,55 +285,82 @@ export function DesktopPage() {
           ))}
         </section>
 
-        <section className="mx-[70px] mt-[50px] rounded-[16px] bg-white px-[30px] pt-[25px] pb-10">
-          <span className="block h-[3px] w-9 bg-[#1F8955]" />
-          <h2 className="mt-1 text-[24px] leading-[29px] font-bold">Get In Touch</h2>
-          <p className="mt-4 text-[15px] leading-[19px] text-[#667085]">Have questions? We&apos;re here to help.</p>
-          <p className="mt-4 max-w-[482px] text-[14px] leading-[19px] text-[#667085]">
-            Whether you are a farmer, trader, warehouse owner or investor, our team is ready to support you.
-          </p>
-          <div className="mt-8 grid gap-[15px] text-[14px] leading-[19px]">
-            {[
-              { icon: PhoneIcon, title: '+91 98737373140', copy: 'Mon - Sat, 9:00 AM - 6:00 PM (IST)' },
-              { icon: MailIcon, title: 'support@krsi.com', copy: 'We typically respond within 24 hours' },
-              { icon: PinIcon, title: 'Delhi , India', copy: 'Building a global agri marketplace' },
-            ].map((item) => (
-              <div key={item.title} className="flex items-center gap-[15px]">
-                <span className="grid size-[50px] shrink-0 place-items-center rounded-full bg-[#1F8955] text-white">
-                  <item.icon className="size-5" />
-                </span>
-                <p>
-                  <span className="font-semibold text-[#1E1E1E]">{item.title}</span>
-                  <span className="block text-[#667085]">{item.copy}</span>
-                </p>
-              </div>
-            ))}
+        <section id="contact" className="mt-[50px] grid grid-cols-2 gap-8 rounded-[16px] bg-white p-[30px]">
+          <div>
+            <span className="block h-[3px] w-9 bg-[#1F8955]" />
+            <h2 className="mt-6 text-[18px] leading-[24px] font-bold text-[#1E1E1E]">Have questions? We&apos;re here to help.</h2>
+            <p className="mt-3 max-w-[482px] text-[14px] leading-[19px] text-[#667085]">
+              Whether you are a farmer, trader, warehouse owner or investor, our team is ready to support you.
+            </p>
+            <div className="mt-8 grid gap-[15px] text-[14px] leading-[19px]">
+              {contacts.map((item) => (
+                <div key={item.title} className="flex items-center gap-[15px]">
+                  <span className={`grid size-[50px] shrink-0 place-items-center rounded-full ${darkGreen}`}>
+                    <img src={icon(item.icon)} alt="" className="size-5" />
+                  </span>
+                  <p>
+                    <span className="font-semibold text-[#1E1E1E]">{item.title}</span>
+                    <span className="block text-[#667085]">{item.copy}</span>
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
+          <form
+            onSubmit={(event) => draftMail(event, 'Website enquiry')}
+            className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-[12px] border border-[#E4E7EC] p-5 text-[14px] text-[#344054] shadow-[0_6px_16px_rgba(16,24,40,0.05)]"
+          >
+            <label>
+              Full Name*
+              <input required name="name" placeholder="Enter your name" className={field} />
+            </label>
+            <label>
+              Email Address*
+              <input required name="email" type="email" placeholder="you@company.com" className={field} />
+            </label>
+            <label>
+              Phone Number
+              <input name="phone" type="tel" placeholder="+91 9810101010" className={field} />
+            </label>
+            <label>
+              Subject*
+              <select required name="subject" defaultValue="" className={`${field} bg-white`}>
+                <option value="" disabled>
+                  Select a subject
+                </option>
+                {subjects.map((subject) => (
+                  <option key={subject}>{subject}</option>
+                ))}
+              </select>
+            </label>
+            <label className="col-span-2">
+              Message*
+              <textarea required name="message" rows={3} placeholder="Tell us how we can help..." className={`${field} h-auto resize-none py-2`} />
+            </label>
+            <button type="submit" className={`col-span-2 h-10 rounded-[6px] ${darkGreen} font-medium text-white`}>
+              Send Message
+            </button>
+          </form>
         </section>
 
-        <footer className="mx-[70px] mt-8 border-t border-[#E4E7EC] pt-8 text-[14px] leading-[19px] text-[#667085]">
-          <div className="grid grid-cols-[346px_1px_230px_205px_186px_1px_1fr] gap-0">
-            <div className="pr-8">
-              <p className="max-w-[266px]">
-                Whether you are a farmer, trader, warehouse owner or investor, our team is ready to support you.
-              </p>
-              <div className="mt-6 flex items-center gap-4 text-[#1E1E1E]">
-                <XIcon className="size-6" />
-                <TelegramIcon className="size-7" />
-                <DiscordIcon className="size-8" />
-                <YoutubeIcon className="size-8" />
+        <footer className="mt-10 border-y border-[#E4E7EC] py-8 text-[14px] leading-[19px] text-[#667085]">
+          <div className="grid grid-cols-[1.4fr_1px_1fr_1fr_1fr_1px_1.3fr]">
+            <div className="flex flex-col justify-end pr-8">
+              <p className="max-w-[266px]">Whether you are a farmer, trader, warehouse owner or investor, our team is ready to support you.</p>
+              <div className="mt-4 flex items-center gap-3 text-[#1E1E1E]">
+                <XIcon className="size-5" />
+                <TelegramIcon className="size-5" />
+                <LinkedinIcon className="size-5" />
+                <DiscordIcon className="size-6" />
+                <img src={icon('youtube')} alt="" className="size-6" />
               </div>
             </div>
             <div className="bg-[#E4E7EC]" />
-            {[
-              ['Marketplace', ['Explore', 'Commodities', 'Auctions', 'Warehouses', 'Market Data']],
-              ['Company', ['About', 'Careers', 'Blog', 'Contact', 'Partners']],
-              ['Resources', ['Help Centre', 'Documentation', 'Market Insights', 'API', 'Terms & Privacy']],
-            ].map(([title, links]) => (
-              <div key={title as string} className="px-6">
-                <p className="mb-2.5 font-semibold text-[#1E1E1E]">{title as string}</p>
+            {footerLinks.map(([title, links]) => (
+              <div key={title} className="px-8">
+                <p className="mb-2.5 font-semibold text-[#1E1E1E]">{title}</p>
                 <div className="grid gap-[10px]">
-                  {(links as string[]).map((link) => (
+                  {links.map((link) => (
                     <span key={link}>{link}</span>
                   ))}
                 </div>
@@ -337,6 +370,12 @@ export function DesktopPage() {
             <div className="pl-8">
               <p className="mb-2.5 font-semibold text-[#1E1E1E]">Subscribe to updates</p>
               <p className="max-w-[248px]">Get the latest market insights and product updates.</p>
+              <form onSubmit={(event) => draftMail(event, 'Subscribe to updates')} className="mt-4 flex gap-2">
+                <input required name="email" type="email" placeholder="Enter your email" aria-label="Email for updates" className={`${field} mt-0 min-w-0 flex-1`} />
+                <button type="submit" aria-label="Subscribe" className={`grid h-10 w-14 shrink-0 place-items-center rounded-[6px] ${darkGreen} text-[18px] text-white`}>
+                  ⟶
+                </button>
+              </form>
             </div>
           </div>
         </footer>

@@ -140,44 +140,6 @@ export function ShieldIcon({ className }: IconProps) {
   )
 }
 
-export function PeopleIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <circle {...stroke} cx="8" cy="9" r="2.2" />
-      <circle {...stroke} cx="16" cy="9" r="2.2" />
-      <path {...stroke} d="M4.5 17.5c.6-2 2.2-3 3.5-3s2.9 1 3.5 3M12.5 17.5c.6-2 2.2-3 3.5-3s2.9 1 3.5 3" />
-    </svg>
-  )
-}
-
-export function GlobeIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <circle {...stroke} cx="12" cy="12" r="8" />
-      <path {...stroke} d="M4 12h16M12 4c2 2.3 3 5 3 8s-1 5.7-3 8c-2-2.3-3-5-3-8s1-5.7 3-8Z" />
-    </svg>
-  )
-}
-
-export function BankIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path {...stroke} d="M4 10h16M6 10v7M10 10v7M14 10v7M18 10v7M3 17h18M12 4 3 9h18L12 4Z" />
-    </svg>
-  )
-}
-
-export function PhoneIcon({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
-      <path
-        {...stroke}
-        d="M8 4.5h2.2l1.2 3-1.6 1a11 11 0 0 0 5.5 5.5l1-1.6 3 1.2V18a1.5 1.5 0 0 1-1.6 1.5A14.5 14.5 0 0 1 4.5 8.1 1.5 1.5 0 0 1 6 6.5h2Z"
-      />
-    </svg>
-  )
-}
-
 export function PinIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
@@ -267,12 +229,12 @@ export function DiscordIcon({ className }: IconProps) {
   )
 }
 
-export function YoutubeIcon({ className }: IconProps) {
+export function LinkedinIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
       <path
         fill="currentColor"
-        d="M22 12.2s0-3.1-.4-4.5c-.2-.8-.9-1.5-1.7-1.7C18.4 5.6 12 5.6 12 5.6s-6.4 0-7.9.4c-.8.2-1.5.9-1.7 1.7C2 9.1 2 12.2 2 12.2s0 3.1.4 4.5c.2.8.9 1.5 1.7 1.7 1.5.4 7.9.4 7.9.4s6.4 0 7.9-.4c.8-.2 1.5-.9 1.7-1.7.4-1.4.4-4.5.4-4.5ZM10 15.2V9.2l5.2 3-5.2 3Z"
+        d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9.75h3.96V21H3V9.75Zm6.46 0h3.8v1.54h.05c.53-1 1.82-2.05 3.75-2.05 4 0 4.74 2.63 4.74 6.06V21h-3.96v-5.03c0-1.2-.02-2.74-1.67-2.74-1.67 0-1.93 1.3-1.93 2.65V21H9.46V9.75Z"
       />
     </svg>
   )
