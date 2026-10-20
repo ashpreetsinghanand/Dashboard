@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { signupDraft } from '../auth/AuthContext'
 import { AuthScreen } from '../components/AuthScreen'
 
 const languages = [
@@ -6,7 +7,7 @@ const languages = [
   { label: 'English', glyph: 'A', bg: '#dbf1dc', color: '#54b554' },
   { label: 'Bengali-বাংলা', glyph: 'ক', bg: '#d5f0e5', color: '#31a977' },
   { label: 'Telugu-తెలుగు', glyph: 'అ', bg: '#f8dcd3', color: '#d3542c' },
-  { label: 'Tamil-বাংলা', glyph: 'அ', bg: '#fdf3d2', color: '#eac02c' },
+  { label: 'Tamil-தமிழ்', glyph: 'அ', bg: '#fdf3d2', color: '#eac02c' },
   { label: 'Marathi-मराठी', glyph: 'अ', bg: '#d6f1f3', color: '#32babf' },
   { label: 'Gujarati-ગુજરાતી', glyph: 'અ', bg: '#e5dcda', color: '#6a4141' },
   { label: 'Kannada-ಕನ್ನಡ', glyph: 'ಎ', bg: '#e8d1fd', color: '#8d21e7' },
@@ -50,7 +51,7 @@ export function LanguagePage() {
   const navigate = useNavigate()
 
   function choose(label: string) {
-    sessionStorage.setItem('krsi-language', label)
+    signupDraft.merge({ language: label })
     navigate('/signup/category')
   }
 

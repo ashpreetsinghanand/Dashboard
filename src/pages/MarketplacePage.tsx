@@ -1,64 +1,88 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { api } from '../api/endpoints'
+import type { InsightType, Listing, MarketSort } from '../api/types'
+import { useAuth } from '../auth/AuthContext'
 import { DashboardShell } from '../components/DashboardShell'
 import { DocIcon, GrainIcon, PinIcon, RepayIcon, TrendIcon } from '../components/Icons'
+import { BidModal, BuyerOnlyModal, LotDetailsModal } from '../components/trade/MarketModals'
+import { Pager } from '../components/trade/shared'
+import { ErrorBanner } from '../components/ui'
+import { money, mt, pct, perMt, statValue } from '../lib/format'
+import { useApi } from '../lib/useApi'
 
-const chips = ['All', 'Grain', 'Pulses', 'Oilseeds', 'Spices', 'Coffee & Tea', 'Coffee & Tea']
+// Must match the server's categories (GET /api/reference/commodities).
+const chips = ['All', 'Grain', 'Pulses', 'Oilseeds', 'Spices', 'Coffee & Tea']
 
-const lots = [
-  { id: 'c1', name: 'Coffee', image: '/assets/coffee.png', category: 'Coffee & Tea' },
-  { id: 't1', name: 'Turmeric', image: '/assets/turmeric.png', category: 'Spices' },
-  { id: 'g1', name: 'Turmeric', image: '/assets/cumin.jpg', category: 'Grain' },
-  { id: 's1', name: 'Turmeric', image: '/assets/cardamom.jpg', category: 'Spices' },
-  { id: 'c2', name: 'Coffee', image: '/assets/coffee.png', category: 'Coffee & Tea' },
-  { id: 't2', name: 'Turmeric', image: '/assets/turmeric.png', category: 'Spices' },
-  { id: 'g2', name: 'Turmeric', image: '/assets/cumin.jpg', category: 'Grain' },
-  { id: 's2', name: 'Turmeric', image: '/assets/cardamom.jpg', category: 'Spices' },
-]
+const insightTabs: Record<string, InsightType> = { 'Top Gainers': 'GAINERS', 'Top Loser': 'LOSERS', Watchlist: 'WATCHLIST' }
 
-const insights = [
-  ['Coffee', '$25.00', '+2.4%', '/assets/coffee.png'],
-  ['Turmeric', '$30.00', '+1.8%', '/assets/turmeric.png'],
-  ['Cardamum', '$120.00', '+0.1%', '/assets/cardamom.jpg'],
-  ['Black Pepper', '$14.63', '+2.5%', '/assets/pepper.jpg'],
-  ['Clove', '$95.00', '+0.5%', '/assets/clove.png'],
-] as const
+const activityIcons: Record<string, typeof GrainIcon> = {
+  storedProduce: GrainIcon,
+  holdings: GrainIcon,
+  activeLoan: DocIcon,
+  totalSales: TrendIcon,
+  totalPurchases: TrendIcon,
+  pendingRepayment: RepayIcon,
+  unpaidStorage: RepayIcon,
+  activeBids: DocIcon,
+}
 
-const activity = [
-  { label: 'Stored Produce', value: '24.5 MT', icon: GrainIcon },
-  { label: 'Active Loan', value: '$10000', icon: DocIcon },
-  { label: 'Total Sales', value: '$100000', icon: TrendIcon },
-  { label: 'Pending Repayment', value: '$500', icon: RepayIcon },
-]
-
-const regions = ['All Region', 'Chikmagalur']
-const grades = ['All Grades', 'Grade A']
-const quantities = ['Any Quantity', '2500 MT', 'Under 1000 MT']
-const sorts = ['Latest', 'Name', 'Price']
+const quantities: Record<string, number | undefined> = { 'Any Quantity': undefined, 'Under 100 MT': 100, 'Under 1000 MT': 1000 }
+const sorts: Record<string, MarketSort> = { Latest: 'LATEST', Name: 'NAME', 'Price: Low': 'PRICE_LOW', 'Price: High': 'PRICE_HIGH' }
 
 export function MarketplacePage() {
-  const [query, setQuery] = useState('')
+  const { user } = useAuth()
+  const [params, setParams] = useSearchParams()
+  const applied = params.get('q') ?? ''
+  const [query, setQuery] = useState(applied)
+  const [shownQuery, setShownQuery] = useState(applied)
+  if (shownQuery !== applied) {
+    // the top-bar search navigated here with a new ?q=
+    setShownQuery(applied)
+    setQuery(applied)
+  }
   const [chip, setChip] = useState(0)
-  const [region, setRegion] = useState(regions[0])
-  const [grade, setGrade] = useState(grades[0])
-  const [quantity, setQuantity] = useState(quantities[0])
+  const [region, setRegion] = useState('All Region')
+  const [grade, setGrade] = useState('All Grades')
+  const [quantity, setQuantity] = useState('Any Quantity')
   const [verifiedOnly, setVerifiedOnly] = useState(true)
-  const [sort, setSort] = useState(sorts[0])
+  const [sort, setSort] = useState('Latest')
+  const [page, setPage] = useState(0)
   const [layout, setLayout] = useState<'grid' | 'list'>('grid')
   const [insight, setInsight] = useState('Top Gainers')
+  const [detailsId, setDetailsId] = useState<number>()
+  const [buying, setBuying] = useState<Listing>()
 
-  const results = useMemo(() => {
-    const category = chips[chip]
-    const text = query.trim().toLowerCase()
-    const filtered = lots.filter((lot) => {
-      const categoryOk = category === 'All' || lot.category === category
-      const textOk = text === '' || `${lot.name} chikmagalur`.includes(text)
-      const regionOk = region === 'All Region' || region === 'Chikmagalur'
-      const gradeOk = grade === 'All Grades' || grade === 'Grade A'
-      const quantityOk = quantity === 'Any Quantity' || quantity === '2500 MT'
-      return categoryOk && textOk && regionOk && gradeOk && quantityOk
-    })
-    return filtered.sort((a, b) => (sort === 'Name' ? a.name.localeCompare(b.name) : 0))
-  }, [chip, grade, quantity, query, region, sort])
+  const { data: filters } = useApi(() => api.marketplace.filters(), [])
+  const { data, loading, error, reload } = useApi(
+    () =>
+      api.marketplace.search({
+        q: applied || undefined,
+        category: chips[chip] === 'All' ? undefined : chips[chip],
+        region: region === 'All Region' ? undefined : region,
+        grade: grade === 'All Grades' ? undefined : grade,
+        maxQuantityMt: quantities[quantity],
+        verifiedOnly,
+        sort: sorts[sort],
+        page,
+        size: 12,
+      }),
+    [applied, chip, region, grade, quantity, verifiedOnly, sort, page],
+  )
+  const insights = useApi(() => api.market.insights(insightTabs[insight]), [insight])
+  const dashboard = useApi(() => (user ? api.dashboard() : Promise.resolve(undefined)), [user])
+
+  // every filter change starts again from the first page
+  const filter = <T,>(set: (value: T) => void) => (value: T) => {
+    set(value)
+    setPage(0)
+  }
+  const lots = data?.items ?? []
+
+  function buy(lot: Listing) {
+    setDetailsId(undefined)
+    setBuying(lot)
+  }
 
   return (
     <DashboardShell section="marketplace">
@@ -84,6 +108,9 @@ export function MarketplacePage() {
               className="mt-[15px] flex items-center gap-[10px]"
               onSubmit={(event) => {
                 event.preventDefault()
+                const q = query.trim()
+                setParams(q ? { q } : {})
+                setPage(0)
               }}
             >
               <label className="flex h-[30px] min-w-0 flex-1 items-center gap-2 rounded-[8px] border border-[#E6E8EC] bg-white px-3">
@@ -104,9 +131,9 @@ export function MarketplacePage() {
             <div className="mt-3 flex flex-wrap gap-2">
               {chips.map((label, index) => (
                 <button
-                  key={`${label}-${index}`}
+                  key={label}
                   type="button"
-                  onClick={() => setChip(index)}
+                  onClick={() => filter(setChip)(index)}
                   className={`h-[30px] rounded-full px-3.5 text-[13px] leading-none ${
                     chip === index
                       ? 'bg-[#E7F6EE] font-medium text-[#1F8955]'
@@ -119,12 +146,24 @@ export function MarketplacePage() {
             </div>
 
             <div className="mt-2.5 flex items-center gap-2">
-              <FilterSelect label="Region" value={region} options={regions} onChange={setRegion} icon={<PinIcon className="size-4 text-[#667085]" />} />
-              <FilterSelect label="Quality Grade" value={grade} options={grades} onChange={setGrade} icon={<BadgeIcon />} />
-              <FilterSelect label="Quantity" value={quantity} options={quantities} onChange={setQuantity} icon={<BoxesIcon />} />
+              <FilterSelect
+                label="Region"
+                value={region}
+                options={['All Region', ...(filters?.regions ?? [])]}
+                onChange={filter(setRegion)}
+                icon={<PinIcon className="size-4 text-[#667085]" />}
+              />
+              <FilterSelect
+                label="Quality Grade"
+                value={grade}
+                options={['All Grades', ...(filters?.grades ?? [])]}
+                onChange={filter(setGrade)}
+                icon={<BadgeIcon />}
+              />
+              <FilterSelect label="Quantity" value={quantity} options={Object.keys(quantities)} onChange={filter(setQuantity)} icon={<BoxesIcon />} />
               <button
                 type="button"
-                onClick={() => setVerifiedOnly((open) => !open)}
+                onClick={() => filter(setVerifiedOnly)(!verifiedOnly)}
                 className="flex h-10 items-center gap-2 rounded-[10px] border border-[#E6E8EC] bg-white px-2.5"
               >
                 <span className={`relative h-4 w-7 shrink-0 rounded-full ${verifiedOnly ? 'bg-[#1F8955]' : 'bg-[#D0D5DD]'}`}>
@@ -135,7 +174,7 @@ export function MarketplacePage() {
                   <span className="text-[12px] font-medium">{verifiedOnly ? 'Only' : 'Any'}</span>
                 </span>
               </button>
-              <FilterSelect label="Sort By" value={sort} options={sorts} onChange={setSort} icon={<SortIcon />} />
+              <FilterSelect label="Sort By" value={sort} options={Object.keys(sorts)} onChange={filter(setSort)} icon={<SortIcon />} />
               <div className="ml-auto flex h-9 overflow-hidden rounded-[8px] border border-[#E6E8EC] bg-white">
                 <button
                   type="button"
@@ -156,16 +195,25 @@ export function MarketplacePage() {
               </div>
             </div>
 
-            {results.length === 0 ? (
+            {error ? (
+              <div className="mt-4">
+                <ErrorBanner error={error} onRetry={reload} />
+              </div>
+            ) : loading && !data ? (
+              <p className="mt-4 rounded-[12px] bg-white px-4 py-8 text-center text-[14px] text-[#667085]">Loading lots…</p>
+            ) : lots.length === 0 ? (
               <p className="mt-4 rounded-[12px] bg-white px-4 py-8 text-center text-[14px] text-[#667085]">
                 No commodities match these filters.
               </p>
             ) : (
-              <div className={layout === 'grid' ? 'mt-3 grid grid-cols-4 gap-3' : 'mt-3 grid gap-3'}>
-                {results.map((lot) => (
-                  <LotCard key={lot.id} lot={lot} layout={layout} />
-                ))}
-              </div>
+              <>
+                <div className={`${layout === 'grid' ? 'mt-3 grid grid-cols-4 gap-3' : 'mt-3 grid gap-3'} ${loading ? 'opacity-60' : ''}`}>
+                  {lots.map((lot) => (
+                    <LotCard key={lot.id} lot={lot} layout={layout} onDetails={() => setDetailsId(lot.id)} onBuy={() => buy(lot)} />
+                  ))}
+                </div>
+                <Pager page={data?.page ?? 0} totalPages={data?.totalPages ?? 0} onPage={setPage} />
+              </>
             )}
           </section>
 
@@ -173,7 +221,7 @@ export function MarketplacePage() {
             <article className="rounded-[16px] bg-white px-3.5 pt-3.5 pb-3">
               <h2 className="text-[18px] leading-6 font-bold">Market Insights</h2>
               <div className="mt-2 flex items-center gap-1 text-[12px]">
-                {['Top Gainers', 'Top Loser', 'Watchlist'].map((tab) => (
+                {Object.keys(insightTabs).map((tab) => (
                   <button
                     key={tab}
                     type="button"
@@ -189,36 +237,48 @@ export function MarketplacePage() {
                 ))}
               </div>
               <div className="mt-2 grid">
-                {insights.map(([name, price, change, image]) => (
-                  <div key={name} className="flex h-8 items-center gap-2 text-[13px]">
-                    <img src={image} alt="" className="size-[26px] rounded-[6px] object-cover" />
-                    <span className="flex-1 truncate">{name}</span>
-                    <span>{price}</span>
-                    <span className="w-12 text-right text-[#1F8955]">{change}</span>
+                <ErrorBanner error={insights.error} onRetry={insights.reload} />
+                {insights.data?.length === 0 ? (
+                  <p className="py-2 text-[13px] text-[#667085]">
+                    {insight === 'Watchlist' ? (user ? 'Your watchlist is empty.' : 'Sign in to see your watchlist.') : 'No prices yet.'}
+                  </p>
+                ) : null}
+                {insights.data?.map((item) => (
+                  <div key={item.commodity} className="flex h-8 items-center gap-2 text-[13px]">
+                    <img src={item.imageUrl} alt="" className="size-[26px] rounded-[6px] object-cover" />
+                    <span className="flex-1 truncate">{item.commodity}</span>
+                    <span>{money(item.pricePerKg)}</span>
+                    <span className={`w-12 text-right ${item.changePct < 0 ? 'text-[#D92D20]' : 'text-[#1F8955]'}`}>{pct(item.changePct)}</span>
                   </div>
                 ))}
               </div>
             </article>
 
-            <article className="rounded-[16px] bg-white px-3.5 pt-3.5 pb-2">
-              <div className="flex items-center justify-between">
-                <h2 className="text-[18px] leading-6 font-bold">Your Activity</h2>
-                <button type="button" className="text-[12px] text-[#1F8955]">
-                  View All <span aria-hidden="true">→</span>
-                </button>
-              </div>
-              {activity.map((item) => (
-                <div key={item.label} className="flex h-[42px] items-center justify-between text-[13px]">
-                  <span className="flex items-center gap-2 text-[#667085]">
-                    <span className="grid size-7 place-items-center rounded-[8px] bg-[#F4F7FB]">
-                      <item.icon className="size-3.5" />
-                    </span>
-                    {item.label}
-                  </span>
-                  <span className="font-semibold">{item.value}</span>
+            {user ? (
+              <article className="rounded-[16px] bg-white px-3.5 pt-3.5 pb-2">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-[18px] leading-6 font-bold">Your Activity</h2>
+                  <Link to="/dashboard" className="text-[12px] text-[#1F8955]">
+                    View All <span aria-hidden="true">→</span>
+                  </Link>
                 </div>
-              ))}
-            </article>
+                <ErrorBanner error={dashboard.error} onRetry={dashboard.reload} />
+                {dashboard.data?.activity.map((tile) => {
+                  const Icon = activityIcons[tile.key] ?? GrainIcon
+                  return (
+                    <div key={tile.key} className="flex h-[42px] items-center justify-between text-[13px]">
+                      <span className="flex items-center gap-2 text-[#667085]">
+                        <span className="grid size-7 place-items-center rounded-[8px] bg-[#F4F7FB]">
+                          <Icon className="size-3.5" />
+                        </span>
+                        {tile.label}
+                      </span>
+                      <span className="font-semibold">{statValue(tile, dashboard.data?.currency)}</span>
+                    </div>
+                  )
+                })}
+              </article>
+            ) : null}
 
             <article className="relative h-[148px] overflow-hidden rounded-[16px]">
               <img src="/assets/warehouse-card.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -229,6 +289,10 @@ export function MarketplacePage() {
           </aside>
         </div>
       </main>
+
+      {detailsId !== undefined ? <LotDetailsModal id={detailsId} onClose={() => setDetailsId(undefined)} onBuy={buy} /> : null}
+      {buying && user?.role === 'MERCHANT' ? <BidModal lot={buying} onClose={() => setBuying(undefined)} onPlaced={reload} /> : null}
+      {buying && user?.role !== 'MERCHANT' ? <BuyerOnlyModal signedIn={!!user} onClose={() => setBuying(undefined)} /> : null}
     </DashboardShell>
   )
 }
@@ -236,44 +300,57 @@ export function MarketplacePage() {
 function LotCard({
   lot,
   layout,
+  onDetails,
+  onBuy,
 }: {
-  lot: (typeof lots)[number]
+  lot: Listing
   layout: 'grid' | 'list'
+  onDetails: () => void
+  onBuy: () => void
 }) {
   const horizontal = layout === 'list'
+  const [amount, unit] = perMt(lot.askingPricePerMt).split('/')
   return (
     <article className={`overflow-hidden rounded-[12px] bg-white shadow-[0_4px_14px_rgba(16,24,40,0.05)] ${horizontal ? 'flex' : ''}`}>
       <div className={horizontal ? 'relative h-[124px] w-[180px] shrink-0 overflow-hidden' : 'relative h-[96px] overflow-hidden'}>
-        <img src={lot.image} alt="" className="h-full w-full object-cover" />
+        <img src={lot.imageUrl} alt="" className="h-full w-full object-cover" />
+        {lot.warehouseVerified ? (
+          <span className="absolute top-1.5 left-1.5 rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-medium text-[#1F8955]">✓ Verified</span>
+        ) : null}
+        {lot.offers > 0 ? (
+          <span className="absolute top-1.5 right-1.5 rounded-full bg-white/90 px-1.5 py-0.5 text-[9px] font-medium text-[#344054]">
+            {lot.offers} {lot.offers === 1 ? 'offer' : 'offers'}
+          </span>
+        ) : null}
       </div>
       <div className={`min-w-0 ${horizontal ? 'flex flex-1 flex-col justify-center px-4 py-3' : 'px-2.5 pt-1.5 pb-2.5'}`}>
-        <p className="flex items-center gap-1 text-[10px] leading-3 text-[#98A2B3]">
+        <p className="flex items-center gap-1 truncate text-[10px] leading-3 text-[#98A2B3]">
           <PinIcon className="size-2.5 text-[#98A2B3]" />
-          Chikmagalur
+          {lot.region}
         </p>
-        <p className="text-[14px] leading-4 font-semibold">{lot.name}</p>
+        <p className="text-[14px] leading-4 font-semibold">{lot.commodity}</p>
         <p className="text-[13px] leading-4 font-semibold text-[#1F8955]">
-          $250.00<span className="text-[11px] font-medium">/MT</span>
+          {amount}<span className="text-[11px] font-medium">/{unit}</span>
         </p>
         <div className="mt-1 grid grid-cols-3 text-[9px] leading-3 text-[#98A2B3]">
           <span>
             Available
-            <span className="mt-0.5 block text-[10px] text-[#344054]">2500 MT</span>
+            <span className="mt-0.5 block text-[10px] text-[#344054]">{mt(lot.quantityMt)}</span>
           </span>
           <span>
             Quality
-            <span className="mt-0.5 block text-[10px] text-[#344054]">Grade A</span>
+            <span className="mt-0.5 block text-[10px] text-[#344054]">{lot.grade}</span>
           </span>
           <span>
             Min. Order
-            <span className="mt-0.5 block text-[10px] text-[#344054]">100 MT</span>
+            <span className="mt-0.5 block text-[10px] text-[#344054]">{mt(lot.minQuantityMt)}</span>
           </span>
         </div>
         <div className={`flex gap-1 ${horizontal ? 'mt-2 max-w-[280px]' : 'mt-2'}`}>
-          <button type="button" className="h-[22px] shrink-0 rounded-[6px] border border-[#D0D5DD] px-1.5 text-[9px] leading-none whitespace-nowrap">
+          <button type="button" onClick={onDetails} className="h-[22px] shrink-0 rounded-[6px] border border-[#D0D5DD] px-1.5 text-[9px] leading-none whitespace-nowrap">
             View Details
           </button>
-          <button type="button" className="h-[22px] min-w-0 flex-1 rounded-[6px] bg-[#1F8955] px-1 text-[9px] leading-none whitespace-nowrap text-white">
+          <button type="button" onClick={onBuy} className="h-[22px] min-w-0 flex-1 rounded-[6px] bg-[#1F8955] px-1 text-[9px] leading-none whitespace-nowrap text-white">
             Buy / Request Quote
           </button>
         </div>

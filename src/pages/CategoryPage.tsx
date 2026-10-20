@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom'
+import type { Category } from '../api/types'
+import { signupDraft } from '../auth/AuthContext'
 import { AuthScreen } from '../components/AuthScreen'
 
-const categories = [
+const categories: { id: Category; title: string; color: string; image: string; copy: string }[] = [
   {
     id: 'farmer',
     title: 'Farmer',
@@ -30,13 +32,20 @@ const categories = [
     image: '/assets/plant.png',
     copy: 'Source quality commodities, secure reliable supply, and streamline procurement.',
   },
+  {
+    id: 'warehouse_owner',
+    title: 'Warehouse Owner',
+    color: '#B54708',
+    image: '/assets/warehouse.png',
+    copy: 'List your warehouses, accept bookings, and issue verified receipts.',
+  },
 ]
 
 export function CategoryPage() {
   const navigate = useNavigate()
 
-  function choose(id: string) {
-    sessionStorage.setItem('krsi-category', id)
+  function choose(id: Category) {
+    signupDraft.merge({ category: id })
     navigate('/signup/phone')
   }
 

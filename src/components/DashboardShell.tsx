@@ -1,5 +1,7 @@
-import { Fragment, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Fragment, useState, type FormEvent, type ReactNode } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import type { Role } from '../api/types'
+import { useAuth } from '../auth/AuthContext'
 import {
   BellIcon,
   ChartIcon,
@@ -12,13 +14,20 @@ import {
   SackIcon,
   StoreIcon,
   TradeIcon,
+  WarehouseIcon,
+  ShieldIcon,
 } from './Icons'
 
-const nav = [
+const TRADERS: Role[] = ['FARMER', 'MERCHANT']
+
+// `roles` limits who sees an item (section 5 of the backend UI guide); no `roles` means everyone.
+const nav: { label: string; icon: typeof HomeIcon; to: string; roles?: Role[] }[] = [
   { label: 'Home', icon: HomeIcon, to: '/dashboard' },
   { label: 'Store', icon: StoreIcon, to: '/store' },
-  { label: 'Get Loan', icon: LoanIcon, to: '' },
-  { label: 'Trade', icon: TradeIcon, to: '/trade/enwr' },
+  { label: 'Get Loan', icon: LoanIcon, to: '/trade/enwr', roles: TRADERS },
+  { label: 'Trade', icon: TradeIcon, to: '/trade/enwr', roles: TRADERS },
+  { label: 'My Warehouses', icon: WarehouseIcon, to: '/owner/warehouses', roles: ['WAREHOUSE_OWNER'] },
+  { label: 'Audit', icon: ShieldIcon, to: '/audit/inspections', roles: ['AUDITOR'] },
   { label: 'Marketplace', icon: MarketIcon, to: '/marketplace' },
 ]
 
@@ -28,19 +37,32 @@ const storeLinks = [
   { label: 'Storage Invoice', to: '/store/invoice' },
 ]
 
-const tradeLinks = [
+const tradeLinks: { label: string; to: string; icon: ReactNode; roles?: Role[] }[] = [
   { label: 'My eNWR', to: '/trade/enwr', icon: <SearchMini /> },
   { label: 'My Listing', to: '/trade/listing', icon: <RowsMini /> },
-  { label: 'My Bid', to: '/trade/bid', icon: <DocMini /> },
+  { label: 'My Bid', to: '/trade/bid', icon: <DocMini />, roles: ['MERCHANT'] },
   { label: 'Trade History', to: '/trade/history', icon: <ClockMini /> },
 ]
 
-export type ShellSection = 'home' | 'store' | 'marketplace' | 'trade'
-export type StorePage = 'Find Warehouse' | 'Booking Request' | 'Storage Invoice'
-export type TradePage = 'My eNWR' | 'My Listing' | 'My Bid' | 'Trade History'
+const ownerLinks = [
+  { label: 'My Warehouses', to: '/owner/warehouses' },
+  { label: 'Stored Receipts', to: '/owner/receipts' },
+]
 
-const navLower = [
-  { label: 'My Loans', icon: SackIcon },
+const auditLinks = [
+  { label: 'Inspections', to: '/audit/inspections' },
+  { label: 'Warehouse Audits', to: '/audit/warehouses' },
+  { label: 'Ledger', to: '/audit/ledger' },
+]
+
+export type ShellSection = 'home' | 'store' | 'marketplace' | 'trade' | 'owner' | 'audit'
+export type StorePage = 'Find Warehouse' | 'Booking Request' | 'Storage Invoice'
+export type TradePage = 'My eNWR' | 'My Listing' | 'My Bid' | 'Trade History' | 'My Loans'
+export type OwnerPage = 'My Warehouses' | 'Stored Receipts'
+export type AuditPage = 'Inspections' | 'Warehouse Audits' | 'Ledger'
+
+const navLower: { label: string; icon: typeof HomeIcon; to?: string; roles?: Role[] }[] = [
+  { label: 'My Loans', icon: SackIcon, to: '/trade/loans', roles: TRADERS },
   { label: 'Price Alerts', icon: BellIcon },
   { label: 'Analytics', icon: ChartIcon },
   { label: 'Message', icon: MailIcon },
@@ -51,22 +73,30 @@ export function DashboardShell({
   section,
   storePage = 'Find Warehouse',
   tradePage = 'My eNWR',
+  ownerPage = 'My Warehouses',
+  auditPage = 'Inspections',
   children,
 }: {
   section: ShellSection
   storePage?: StorePage
   tradePage?: TradePage
+  ownerPage?: OwnerPage
+  auditPage?: AuditPage
   children: ReactNode
 }) {
+  const { user } = useAuth()
+  const can = (roles?: Role[]) => !roles || (!!user && roles.includes(user.role))
   const aside = (
         <aside className="sticky top-[60px] flex h-[calc(100vh-60px)] w-[200px] shrink-0 flex-col overflow-y-auto bg-white px-5 pt-5 pb-[19px]">
           <nav className="grid">
-            {nav.map((item) => {
+            {nav.filter((item) => can(item.roles)).map((item) => {
               const active =
                 (section === 'home' && item.label === 'Home') ||
                 (section === 'store' && item.label === 'Store') ||
                 (section === 'marketplace' && item.label === 'Marketplace') ||
-                (section === 'trade' && item.label === 'Trade')
+                (section === 'trade' && item.label === 'Trade') ||
+                (section === 'owner' && item.label === 'My Warehouses') ||
+                (section === 'audit' && item.label === 'Audit')
               const className = `relative flex h-10 items-center gap-[15px] rounded-[8px] px-2.5 text-left text-[14px] leading-[17px] ${
                 active ? 'bg-[#E7F6EE] font-semibold text-[#1F8955]' : 'text-[#344054]'
               }`
@@ -92,23 +122,35 @@ export function DashboardShell({
                     <Submenu links={storeLinks} current={storePage} />
                   )}
                   {section === 'trade' && item.label === 'Trade' && (
-                    <Submenu links={tradeLinks} current={tradePage} />
+                    <Submenu links={tradeLinks.filter((link) => can(link.roles))} current={tradePage} />
                   )}
+                  {section === 'owner' && item.label === 'My Warehouses' && <Submenu links={ownerLinks} current={ownerPage} />}
+                  {section === 'audit' && item.label === 'Audit' && <Submenu links={auditLinks} current={auditPage} />}
                 </Fragment>
               )
             })}
           </nav>
-          <nav className={`${section === 'store' || section === 'trade' ? 'mt-8' : 'mt-[121px]'} grid`}>
-            {navLower.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                className="flex h-10 items-center gap-[15px] rounded-[8px] px-2.5 text-left text-[14px] leading-[17px] text-[#344054]"
-              >
-                <item.icon className="size-5 shrink-0 text-[#667085]" />
-                {item.label}
-              </button>
-            ))}
+          <nav className={`${section === 'home' || section === 'marketplace' ? 'mt-[121px]' : 'mt-8'} grid`}>
+            {navLower.filter((item) => can(item.roles)).map((item) => {
+              const className = `flex h-10 items-center gap-[15px] rounded-[8px] px-2.5 text-left text-[14px] leading-[17px] ${
+                section === 'trade' && tradePage === item.label ? 'bg-[#E7F6EE] font-semibold text-[#1F8955]' : 'text-[#344054]'
+              }`
+              const body = (
+                <>
+                  <item.icon className="size-5 shrink-0 text-[#667085]" />
+                  {item.label}
+                </>
+              )
+              return item.to ? (
+                <Link key={item.label} to={item.to} className={className}>
+                  {body}
+                </Link>
+              ) : (
+                <button key={item.label} type="button" className={className}>
+                  {body}
+                </button>
+              )
+            })}
           </nav>
           <div className="mx-0 mt-auto h-[150px] rounded-[12px] border border-[#E6E8EC] px-2.5 pt-[15px]">
             <div className="flex items-start gap-2">
@@ -144,46 +186,83 @@ export function DashboardShell({
 }
 
 function AppTopBar() {
-  const links = [
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const links: { label: string; to: string; roles?: Role[] }[] = [
     { label: 'Store', to: '/store' },
-    { label: 'Get Loan', to: '' },
-    { label: 'Trade', to: '/trade/enwr' },
+    { label: 'Get Loan', to: '/trade/enwr', roles: TRADERS },
+    { label: 'Trade', to: '/trade/enwr', roles: TRADERS },
     { label: 'Marketplace', to: '/marketplace' },
   ]
+  const visible = links.filter((link) => !link.roles || (!!user && link.roles.includes(user.role)))
+
+  function search(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const q = String(new FormData(event.currentTarget).get('q') ?? '').trim()
+    navigate(q ? `/marketplace?q=${encodeURIComponent(q)}` : '/marketplace')
+  }
+
+  const initials = (user?.displayName ?? '?')
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
   return (
     <header className="sticky top-0 z-20 flex h-[60px] items-center bg-white pr-5">
       <div className="w-[200px] shrink-0" />
-      <label className="ml-5 flex h-[35px] w-[520px] items-center gap-2 rounded-[8px] border border-[#E6E8EC] bg-white px-2.5">
+      <form onSubmit={search} className="ml-5 flex h-[35px] w-[520px] items-center gap-2 rounded-[8px] border border-[#E6E8EC] bg-white px-2.5">
         <SearchMini className="size-5 text-[#98A2B3]" />
         <input
+          name="q"
           aria-label="Search Commodities, markets, warehouses"
           placeholder="Search Commodities, markets, warehouses..."
           className="w-full bg-transparent text-[14px] outline-none placeholder:text-[#98A2B3]"
         />
-      </label>
+      </form>
       <nav className="ml-[30px] flex items-center gap-[30px]">
-        {links.map((link) =>
-          link.to ? (
-            <Link key={link.label} to={link.to} className="text-[14px] leading-[17px] font-medium text-[#344054]">
-              {link.label}
-            </Link>
-          ) : (
-            <button key={link.label} type="button" className="text-[14px] leading-[17px] font-medium text-[#344054]">
-              {link.label}
-            </button>
-          ),
-        )}
+        {visible.map((link) => (
+          <Link key={link.label} to={link.to} className="text-[14px] leading-[17px] font-medium text-[#344054]">
+            {link.label}
+          </Link>
+        ))}
       </nav>
-      <div className="ml-auto flex items-center gap-2.5">
-        <img src="/assets/suraj.png" alt="" className="size-10 rounded-full object-cover" />
-        <span>
-          <span className="block text-[14px] leading-[19px] font-semibold">Suraj Kumar</span>
-          <span className="block text-[12px] leading-[15px] text-[#667085]">Farmer</span>
-        </span>
-        <svg viewBox="0 0 20 20" className="size-4 text-[#667085]" aria-hidden="true">
-          <path d="M5 7.5 10 12.5 15 7.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-        </svg>
-      </div>
+      {user ? (
+        <div className="relative ml-auto">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            className="flex items-center gap-2.5 text-left"
+          >
+            <span className="grid size-10 place-items-center rounded-full bg-[#E7F6EE] text-[14px] font-semibold text-[#1F8955]">{initials}</span>
+            <span>
+              <span className="block text-[14px] leading-[19px] font-semibold">{user.displayName}</span>
+              <span className="block text-[12px] leading-[15px] text-[#667085]">{user.categoryLabel}</span>
+            </span>
+            <svg viewBox="0 0 20 20" className="size-4 text-[#667085]" aria-hidden="true">
+              <path d="M5 7.5 10 12.5 15 7.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 mt-2 w-[180px] rounded-[10px] border border-[#E6E8EC] bg-white p-1 shadow-lg">
+              <button
+                type="button"
+                onClick={logout}
+                className="h-9 w-full rounded-[8px] px-3 text-left text-[14px] text-[#D92D20] hover:bg-[#FEF3F2]"
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <Link to="/login" className="ml-auto rounded-[8px] bg-[#1F8955] px-4 py-2 text-[14px] font-medium text-white">
+          Sign in
+        </Link>
+      )}
     </header>
   )
 }

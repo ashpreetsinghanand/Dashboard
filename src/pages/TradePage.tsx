@@ -1,59 +1,40 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { api } from '../api/endpoints'
+import type { Bid, Enwr, Listing, ListingStatus, Page, StatTile, Trade } from '../api/types'
 import { DashboardShell, type TradePage as TradePageName } from '../components/DashboardShell'
 import { StatusPill } from '../components/RequestLayout'
-import { commodityImage } from '../data/bookings'
+import { ConfirmModal, Pager } from '../components/trade/shared'
+import { linkBtn } from '../components/trade/styles'
+import {
+  BidDetailsModal,
+  EditListingModal,
+  EnwrDetailsModal,
+  ListingDetailsModal,
+  ListOnMarketModal,
+  LoanApplyModal,
+  OffersModal,
+  TradeLedgerModal,
+} from '../components/trade/TradeModals'
+import { ErrorBanner } from '../components/ui'
+import type { ApiRequestError } from '../api/client'
+import { money, mt, perMt, shortHash, statusLabel, statValue, toUiDate } from '../lib/format'
+import { useApi } from '../lib/useApi'
 
 const enwrCopy = 'Buy and sell verified eNWRs fom trsuted warehouses across India.'
 
-const enwrRows = [
-  { id: 'coffee', commodity: 'Coffee', grade: 'Grade A', code: 'INV-2026-00125', warehouse: 'Nayak Warehouse', quantity: '100 MT', storedOn: '09-06-2026', validTill: '180 Days', price: '$2500/MT', total: '$250000', min: '10 MT' },
-  { id: 'turmeric', commodity: 'Turmeric', grade: 'RAW', code: 'INV-2026-00125', warehouse: 'Nayak Warehouse', quantity: '100 MT', storedOn: '09-06-2026', validTill: '180 Days', price: '$2500/MT', total: '$250000', min: '10 MT' },
-]
-
-const listingRow = {
-  commodity: 'Coffee',
-  grade: 'Grade A',
-  code: 'INV-2026-00125',
-  warehouse: 'Nayak Warehouse',
-  quantity: '100 MT',
-  storedOn: '09-06-2026',
-  validTill: '180 Days',
-  price: '$2500/MT',
-  offers: '3',
-  status: 'Active',
-}
-
-const bidRow = {
-  commodity: 'Coffee',
-  grade: 'Grade A',
-  code: 'INV-2026-00125',
-  warehouse: 'Nayak Warehouse',
-  quantity: '100 MT',
-  price: '$250/MT',
-  total: '$25000',
-  status: 'Active',
-}
-
+const enwrCols = 'grid-cols-[80px_82px_80px_62px_76px_62px_92px_100px_62px_86px_83px]'
 const deskCols = 'grid-cols-[93px_66px_91px_76px_85px_75px_98px_90px_106px_85px]'
 const bidCols = 'grid-cols-[93px_112px_114px_99px_140px_134px_87px_86px]'
-const listingChips = ['All Listings', 'Active', 'Under Offer', 'Sold', 'Expired']
-const bidChips = ['All Commodities', 'Wheat', 'Maize', 'Soyabean', 'Coffee']
-const enwrChips = ['All eNWR', 'Wheat', 'Maize', 'Barley', 'Coffee']
-
-const listingStats = [
-  { label: 'Active Listings', value: '12', delta: '+2 this week' },
-  { label: 'Total Listed Quantity', value: '1450 MT', delta: '+12% this week' },
-  { label: 'Total Asking Value', value: '$2.5 Mil', delta: '+8% this week' },
-  { label: 'Offers Received', value: '08', delta: '+3 this week' },
-]
-
-const bidStats = [
-  { label: 'Active Bids', value: '8', delta: '+2 this week' },
-  { label: 'Total Bid Value', value: '1450 MT', delta: '+12% this week' },
-  { label: 'Successful Bids', value: '5', delta: '+8% this week' },
-  { label: 'Pending Response', value: '6', delta: '+3 this week' },
-]
+const historyCols = 'grid-cols-[100px_60px_120px_70px_115px_115px_110px_85px_90px]'
+const listingChips: Record<string, ListingStatus | undefined> = {
+  'All Listings': undefined,
+  Active: 'ACTIVE',
+  'Under Offer': 'UNDER_OFFER',
+  Sold: 'SOLD',
+  Expired: 'EXPIRED',
+}
+const OPEN_LISTING: ListingStatus[] = ['ACTIVE', 'UNDER_OFFER']
 
 export function TradePage({ page }: { page: 'enwr' | 'listing' | 'bid' | 'history' }) {
   if (page === 'listing') return <ListingBoard />
@@ -62,26 +43,60 @@ export function TradePage({ page }: { page: 'enwr' | 'listing' | 'bid' | 'histor
   return <EnwrBoard />
 }
 
+/** Commodity chips from the reference list (canonical names). */
+function useCommodityChips(all: string) {
+  const { data } = useApi(() => api.reference.commodities(), [])
+  return [all, ...(data?.map((c) => c.name) ?? [])]
+}
+
+/** Loading / error / empty states shared by every board. Renders the rows only when there are some. */
+function Rows<T>({
+  state,
+  empty,
+  children,
+}: {
+  state: { data: Page<T> | undefined; loading: boolean; error: ApiRequestError | undefined; reload: () => void }
+  empty: string
+  children: (items: T[]) => ReactNode
+}) {
+  if (state.error) return <div className="mt-2"><ErrorBanner error={state.error} onRetry={state.reload} /></div>
+  if (state.loading && !state.data) return <EmptyNote>Loading…</EmptyNote>
+  if (!state.data?.items.length) return <EmptyNote>{empty}</EmptyNote>
+  return <div className={state.loading ? 'opacity-60' : ''}>{children(state.data.items)}</div>
+}
+
+type EnwrModal = { kind: 'details' | 'loan' | 'list'; enwr: Enwr }
+
 function EnwrBoard() {
   const [query, setQuery] = useState('')
   const [applied, setApplied] = useState('')
   const [chip, setChip] = useState('All eNWR')
+  const [page, setPage] = useState(0)
   const [view, setView] = useState<'grid' | 'list'>('grid')
-  const visible = useMemo(() => {
-    const text = applied.trim().toLowerCase()
-    return enwrRows.filter((row) => {
-      const matchesText =
-        text === '' || `${row.commodity} ${row.grade} ${row.warehouse} ${row.code}`.toLowerCase().includes(text)
-      const matchesChip = chip === 'All eNWR' || chip === row.commodity
-      return matchesText && matchesChip
-    })
-  }, [applied, chip])
+  const [modal, setModal] = useState<EnwrModal>()
+  const chips = useCommodityChips('All eNWR')
+  const state = useApi(
+    () => api.enwrs.search({ q: applied || undefined, commodity: chip === 'All eNWR' ? undefined : chip, page }),
+    [applied, chip, page],
+  )
+  // Min. Quantity lives on the receipt's active listing
+  const listings = useApi(() => api.listings.mine({ size: 100 }), [])
+  const minQty = (enwr: Enwr) => listings.data?.items.find((l) => l.id === enwr.activeListingId)?.minQuantityMt
+  const reload = () => {
+    state.reload()
+    listings.reload()
+  }
 
   return (
-    <TradeDesk tradePage="My eNWR" crumb="My eNWR" subtitle={enwrCopy} search={<BoardSearch label="Search My eNWR" query={query} onQuery={setQuery} onSearch={() => setApplied(query)} />}>
-      <FilterRow chips={enwrChips} chip={chip} onChip={setChip} view={view} onView={setView} />
+    <TradeDesk
+      tradePage="My eNWR"
+      crumb="My eNWR"
+      subtitle={enwrCopy}
+      search={<BoardSearch label="Search My eNWR" query={query} onQuery={setQuery} onSearch={() => { setApplied(query.trim()); setPage(0) }} />}
+    >
+      <FilterRow chips={chips} chip={chip} onChip={(value) => { setChip(value); setPage(0) }} view={view} onView={setView} />
       <div className="mt-[15px]">
-        <div className={`grid h-[50px] ${deskCols} items-center bg-white pl-[15px] text-[12px] text-[#98A2B3]`}>
+        <div className={`grid h-[50px] ${enwrCols} items-center bg-white pl-[15px] text-[12px] text-[#98A2B3]`}>
           <span>Commodity</span>
           <span>Details</span>
           <span>Warehouse</span>
@@ -90,55 +105,78 @@ function EnwrBoard() {
           <span>Valid Till</span>
           <span>Asking Price</span>
           <span>Total Value</span>
-          <span>Min. Quantity</span>
+          <span>Min. Qty</span>
+          <span>Status</span>
           <span>Actions</span>
         </div>
-        {visible.length === 0 ? (
-          <EmptyNote>No eNWRs match these filters.</EmptyNote>
-        ) : (
-          visible.map((row) => (
-            <div key={row.id} className={`mt-2 grid h-[90px] ${deskCols} items-center rounded-[12px] bg-white pl-[15px] text-[13px]`}>
-              <PhotoCell name={row.commodity} />
-              <DetailStack name={row.commodity} grade={row.grade} code={row.code} />
-              <span className="w-16 leading-[15px]">{row.warehouse}</span>
-              <span>{row.quantity}</span>
-              <span>{row.storedOn}</span>
-              <span>{row.validTill}</span>
-              <span>{row.price}</span>
-              <span>{row.total}</span>
-              <span>{row.min}</span>
-              <span className="grid justify-items-start gap-1 text-[12px] leading-4 font-medium whitespace-nowrap text-[#1F8955]">
-                <button type="button">View Details</button>
-                <button type="button">Apply For Loan</button>
-                <button type="button">List On Market</button>
-              </span>
-            </div>
-          ))
-        )}
+        <Rows state={state} empty="No eNWRs match these filters.">
+          {(items) =>
+            items.map((row) => (
+              <div key={row.id} className={`mt-2 grid h-[90px] ${enwrCols} items-center rounded-[12px] bg-white pl-[15px] text-[13px]`}>
+                <PhotoCell src={row.imageUrl} />
+                <DetailStack name={row.commodity} grade={row.grade} code={row.receiptNo} />
+                <span className="w-16 leading-[15px]">{row.warehouseName}</span>
+                <span>{mt(row.quantityMt)}</span>
+                <span>{toUiDate(row.storedOn)}</span>
+                <span>{row.daysRemaining} Days</span>
+                <span>{row.marketPricePerMt === null ? '-' : perMt(row.marketPricePerMt)}</span>
+                <span>{money(row.estimatedValue)}</span>
+                <span>{row.activeListingId ? mt(minQty(row)) : '-'}</span>
+                <StatusPill status={statusLabel(row.status)} className="justify-self-start" />
+                <span className="grid justify-items-start gap-1 text-[12px] leading-4 font-medium whitespace-nowrap text-[#1F8955]">
+                  <button type="button" onClick={() => setModal({ kind: 'details', enwr: row })}>
+                    View Details
+                  </button>
+                  {row.actions.canApplyLoan ? (
+                    <button type="button" onClick={() => setModal({ kind: 'loan', enwr: row })}>
+                      Apply For Loan
+                    </button>
+                  ) : null}
+                  {row.actions.canList ? (
+                    <button type="button" onClick={() => setModal({ kind: 'list', enwr: row })}>
+                      List On Market
+                    </button>
+                  ) : null}
+                </span>
+              </div>
+            ))
+          }
+        </Rows>
+        <Pager page={page} totalPages={state.data?.totalPages ?? 0} onPage={setPage} />
       </div>
+      {modal?.kind === 'details' ? <EnwrDetailsModal enwr={modal.enwr} onClose={() => setModal(undefined)} /> : null}
+      {modal?.kind === 'loan' ? <LoanApplyModal enwr={modal.enwr} onClose={() => setModal(undefined)} onDone={reload} /> : null}
+      {modal?.kind === 'list' ? <ListOnMarketModal enwr={modal.enwr} onClose={() => setModal(undefined)} onDone={reload} /> : null}
     </TradeDesk>
   )
 }
+
+type ListingModal = { kind: 'details' | 'edit' | 'offers' | 'withdraw'; listing: Listing }
 
 function ListingBoard() {
   const [query, setQuery] = useState('')
   const [applied, setApplied] = useState('')
   const [chip, setChip] = useState('All Listings')
+  const [page, setPage] = useState(0)
   const [view, setView] = useState<'grid' | 'list'>('grid')
-  const text = applied.trim().toLowerCase()
-  const matchesText = text === '' || `coffee nayak warehouse ${listingRow.code}`.includes(text)
-  const matchesChip = chip === 'All Listings' || chip === listingRow.status
-  const visible = matchesText && matchesChip
+  const [modal, setModal] = useState<ListingModal>()
+  const stats = useApi(() => api.listings.stats(), [])
+  const state = useApi(() => api.listings.mine({ q: applied || undefined, status: listingChips[chip], page }), [applied, chip, page])
+  const reload = () => {
+    state.reload()
+    stats.reload()
+  }
+  const close = () => setModal(undefined)
 
   return (
     <TradeDesk
       tradePage="My Listing"
       crumb="My Listing"
       subtitle="Manage your listed eNWRs and track buyer activity."
-      search={<BoardSearch label="Search My Listing" query={query} onQuery={setQuery} onSearch={() => setApplied(query)} />}
+      search={<BoardSearch label="Search My Listing" query={query} onQuery={setQuery} onSearch={() => { setApplied(query.trim()); setPage(0) }} />}
     >
-      <FilterRow chips={listingChips} chip={chip} onChip={setChip} view={view} onView={setView} />
-      <StatRow stats={listingStats} />
+      <FilterRow chips={Object.keys(listingChips)} chip={chip} onChip={(value) => { setChip(value); setPage(0) }} view={view} onView={setView} />
+      <StatRow stats={stats.data} error={stats.error} onRetry={stats.reload} />
       <div className="mt-[15px]">
         <div className={`grid h-[50px] ${deskCols} items-center bg-white pl-[15px] text-[12px] text-[#98A2B3]`}>
           <span>Commodity</span>
@@ -152,86 +190,203 @@ function ListingBoard() {
           <span>Status</span>
           <span>Actions</span>
         </div>
-        {visible ? (
-          <div className={`mt-2 grid h-[90px] ${deskCols} items-center rounded-[12px] bg-white pl-[15px] text-[13px]`}>
-            <PhotoCell name={listingRow.commodity} />
-            <DetailStack name={listingRow.commodity} grade={listingRow.grade} code={listingRow.code} />
-            <span className="w-16 leading-[15px]">{listingRow.warehouse}</span>
-            <span>{listingRow.quantity}</span>
-            <span>{listingRow.storedOn}</span>
-            <span>{listingRow.validTill}</span>
-            <span>{listingRow.price}</span>
-            <span>{listingRow.offers}</span>
-            <StatusPill status={listingRow.status} className="w-[60px] justify-self-start" />
-            <span className="grid justify-items-start gap-1 text-[12px] leading-4 font-medium whitespace-nowrap text-[#1F8955]">
-              <button type="button">View Details</button>
-              <button type="button">Edit Listing</button>
-              <button type="button">View Offer</button>
-            </span>
-          </div>
-        ) : (
-          <EmptyNote>No listings match these filters.</EmptyNote>
-        )}
+        <Rows state={state} empty="No listings match these filters.">
+          {(items) =>
+            items.map((row) => {
+              const open = OPEN_LISTING.includes(row.status)
+              return (
+                <div key={row.id} className={`mt-2 grid h-[90px] ${deskCols} items-center rounded-[12px] bg-white pl-[15px] text-[13px]`}>
+                  <PhotoCell src={row.imageUrl} />
+                  <DetailStack name={row.commodity} grade={row.grade} code={row.receiptNo} />
+                  <span className="w-16 leading-[15px]">{row.warehouseName}</span>
+                  <span className="leading-[15px]">
+                    {mt(row.quantityMt)}
+                    {row.quantityMt !== row.originalQuantityMt ? (
+                      <span className="block text-[11px] text-[#98A2B3]">of {mt(row.originalQuantityMt)}</span>
+                    ) : null}
+                  </span>
+                  <span>{toUiDate(row.storedOn)}</span>
+                  <span>{row.receiptDaysRemaining} Days</span>
+                  <span>{perMt(row.askingPricePerMt)}</span>
+                  <span>{row.offers}</span>
+                  <StatusPill status={statusLabel(row.status)} className="justify-self-start" />
+                  <span className="grid justify-items-start gap-1 text-[12px] leading-4 font-medium whitespace-nowrap text-[#1F8955]">
+                    <button type="button" onClick={() => setModal({ kind: 'details', listing: row })}>
+                      View Details
+                    </button>
+                    {open ? (
+                      <button type="button" onClick={() => setModal({ kind: 'edit', listing: row })}>
+                        Edit Listing
+                      </button>
+                    ) : null}
+                    <button type="button" onClick={() => setModal({ kind: 'offers', listing: row })}>
+                      View Offer
+                    </button>
+                    {open ? (
+                      <button type="button" onClick={() => setModal({ kind: 'withdraw', listing: row })}>
+                        Withdraw
+                      </button>
+                    ) : null}
+                  </span>
+                </div>
+              )
+            })
+          }
+        </Rows>
+        <Pager page={page} totalPages={state.data?.totalPages ?? 0} onPage={setPage} />
       </div>
+      {modal?.kind === 'details' ? <ListingDetailsModal id={modal.listing.id} onClose={close} /> : null}
+      {modal?.kind === 'edit' ? <EditListingModal listing={modal.listing} onClose={close} onDone={reload} /> : null}
+      {modal?.kind === 'offers' ? <OffersModal listing={modal.listing} onClose={close} onDone={reload} /> : null}
+      {modal?.kind === 'withdraw' ? (
+        <ConfirmModal
+          title={`Withdraw ${modal.listing.code}?`}
+          message={`${modal.listing.commodity} (${mt(modal.listing.quantityMt)}) comes off the marketplace and open offers on it are closed.`}
+          confirmLabel="Withdraw"
+          action={() => api.listings.withdraw(modal.listing.id)}
+          onClose={close}
+          onDone={reload}
+        />
+      ) : null}
     </TradeDesk>
   )
 }
+
+type BidModal = { kind: 'details' | 'withdraw'; bid: Bid }
 
 function BidBoard() {
   const [query, setQuery] = useState('')
   const [applied, setApplied] = useState('')
   const [chip, setChip] = useState('All Commodities')
+  const [page, setPage] = useState(0)
   const [view, setView] = useState<'grid' | 'list'>('grid')
-  const text = applied.trim().toLowerCase()
-  const matchesText = text === '' || `coffee nayak warehouse ${bidRow.code}`.includes(text)
-  const matchesChip = chip === 'All Commodities' || chip === bidRow.commodity
-  const visible = matchesText && matchesChip
+  const [modal, setModal] = useState<BidModal>()
+  const chips = useCommodityChips('All Commodities')
+  const stats = useApi(() => api.bids.stats(), [])
+  const state = useApi(
+    () => api.bids.mine({ q: applied || undefined, commodity: chip === 'All Commodities' ? undefined : chip, page }),
+    [applied, chip, page],
+  )
+  const reload = () => {
+    state.reload()
+    stats.reload()
+  }
+  const close = () => setModal(undefined)
 
   return (
     <TradeDesk
       tradePage="My Bid"
       crumb="My Bid"
       subtitle="View and manage your active bids on eNWRs and commodities."
-      search={<BoardSearch label="Search My Bid" query={query} onQuery={setQuery} onSearch={() => setApplied(query)} />}
+      search={<BoardSearch label="Search My Bid" query={query} onQuery={setQuery} onSearch={() => { setApplied(query.trim()); setPage(0) }} />}
     >
-      <FilterRow chips={bidChips} chip={chip} onChip={setChip} view={view} onView={setView} />
-      <StatRow stats={bidStats} />
+      <FilterRow chips={chips} chip={chip} onChip={(value) => { setChip(value); setPage(0) }} view={view} onView={setView} />
+      <StatRow stats={stats.data} error={stats.error} onRetry={stats.reload} />
       <div className="mt-[15px]">
         <div className={`grid h-[50px] ${bidCols} items-center bg-white pl-[15px] text-[12px] text-[#98A2B3]`}>
           <span>Commodity</span>
           <span>Details</span>
           <span>Warehouse</span>
           <span>Quantity</span>
-          <span>Bid Price($/MT)</span>
+          <span>Bid Price(₹/MT)</span>
           <span>Total Bid Value</span>
           <span>Status</span>
           <span>Actions</span>
         </div>
-        {visible ? (
-          <div className={`mt-2 grid h-[90px] ${bidCols} items-center rounded-[12px] bg-white pl-[15px] text-[13px]`}>
-            <PhotoCell name={bidRow.commodity} />
-            <DetailStack name={bidRow.commodity} grade={bidRow.grade} code={bidRow.code} />
-            <span className="w-16 leading-[15px]">{bidRow.warehouse}</span>
-            <span>{bidRow.quantity}</span>
-            <span>{bidRow.price}</span>
-            <span>{bidRow.total}</span>
-            <StatusPill status={bidRow.status} className="w-[60px] justify-self-start" />
-            <button type="button" className="text-left text-[12px] leading-4 font-medium whitespace-nowrap text-[#1F8955]">
-              View Details
-            </button>
-          </div>
-        ) : (
-          <EmptyNote>No bids match these filters.</EmptyNote>
-        )}
+        <Rows state={state} empty="No bids match these filters.">
+          {(items) =>
+            items.map((row) => (
+              <div key={row.id} className={`mt-2 grid h-[90px] ${bidCols} items-center rounded-[12px] bg-white pl-[15px] text-[13px]`}>
+                <PhotoCell src={row.imageUrl} />
+                <DetailStack name={row.commodity} grade={row.grade} code={row.code} />
+                <span className="w-16 leading-[15px]">{row.warehouseName}</span>
+                <span>{mt(row.quantityMt)}</span>
+                <span>{perMt(row.pricePerMt)}</span>
+                <span>{money(row.totalValue)}</span>
+                <StatusPill status={statusLabel(row.status)} className="w-[60px] justify-self-start" />
+                <span className="grid justify-items-start gap-1">
+                  <button type="button" onClick={() => setModal({ kind: 'details', bid: row })} className={linkBtn}>
+                    View Details
+                  </button>
+                  {row.status === 'ACTIVE' ? (
+                    <button type="button" onClick={() => setModal({ kind: 'withdraw', bid: row })} className={linkBtn}>
+                      Withdraw
+                    </button>
+                  ) : null}
+                </span>
+              </div>
+            ))
+          }
+        </Rows>
+        <Pager page={page} totalPages={state.data?.totalPages ?? 0} onPage={setPage} />
       </div>
+      {modal?.kind === 'details' ? <BidDetailsModal id={modal.bid.id} onClose={close} /> : null}
+      {modal?.kind === 'withdraw' ? (
+        <ConfirmModal
+          title={`Withdraw ${modal.bid.code}?`}
+          message={`Your bid of ${mt(modal.bid.quantityMt)} at ${perMt(modal.bid.pricePerMt)} on ${modal.bid.listingCode} will be withdrawn.`}
+          confirmLabel="Withdraw Bid"
+          action={() => api.bids.withdraw(modal.bid.id)}
+          onClose={close}
+          onDone={reload}
+        />
+      ) : null}
     </TradeDesk>
   )
 }
 
 function HistoryBoard() {
+  const [query, setQuery] = useState('')
+  const [applied, setApplied] = useState('')
+  const [page, setPage] = useState(0)
+  const [ledger, setLedger] = useState<Trade>()
+  const state = useApi(() => api.trades.mine({ q: applied || undefined, page }), [applied, page])
+
   return (
-    <TradeDesk tradePage="Trade History" crumb="Trade History" subtitle="Review completed trades and past activity.">
-      <div className="rounded-[12px] bg-white px-4 py-12 text-center text-[14px] text-[#667085]">No trade history yet.</div>
+    <TradeDesk
+      tradePage="Trade History"
+      crumb="Trade History"
+      subtitle="Review completed trades and past activity."
+      search={<BoardSearch label="Search Trade History" query={query} onQuery={setQuery} onSearch={() => { setApplied(query.trim()); setPage(0) }} />}
+    >
+      <div className={`grid h-[50px] ${historyCols} items-center bg-white pl-[15px] text-[12px] text-[#98A2B3]`}>
+        <span>Trade</span>
+        <span>Side</span>
+        <span>Commodity</span>
+        <span>Quantity</span>
+        <span>Price</span>
+        <span>Total Value</span>
+        <span>Counterparty</span>
+        <span>Settled On</span>
+        <span>Ledger</span>
+      </div>
+      <Rows state={state} empty={applied ? 'No trades match this search.' : 'No trade history yet.'}>
+        {(items) =>
+          items.map((row) => (
+            <div key={row.id} className={`mt-2 grid min-h-[60px] ${historyCols} items-center rounded-[12px] bg-white py-2 pl-[15px] text-[13px]`}>
+              <span className="font-medium">{row.code}</span>
+              <span className={row.side === 'BUY' ? 'text-[#2F6BFF]' : 'text-[#1F8955]'}>{row.side}</span>
+              <span className="flex items-center gap-2 leading-[15px]">
+                <img src={row.imageUrl} alt="" className="size-8 shrink-0 rounded-[6px] object-cover" />
+                <span>
+                  {row.commodity}
+                  <span className="block text-[11px] text-[#98A2B3]">{row.grade}</span>
+                </span>
+              </span>
+              <span>{mt(row.quantityMt)}</span>
+              <span>{perMt(row.pricePerMt)}</span>
+              <span>{money(row.totalValue)}</span>
+              <span className="leading-[15px]">{row.side === 'BUY' ? row.sellerName : row.buyerName}</span>
+              <span>{toUiDate(row.settledAt)}</span>
+              <button type="button" onClick={() => setLedger(row)} title={row.ledgerHash ?? ''} className="text-left text-[12px] text-[#1F8955]">
+                ⛓ {shortHash(row.ledgerHash)}
+              </button>
+            </div>
+          ))
+        }
+      </Rows>
+      <Pager page={page} totalPages={state.data?.totalPages ?? 0} onPage={setPage} />
+      {ledger ? <TradeLedgerModal id={ledger.id} code={ledger.code} onClose={() => setLedger(undefined)} /> : null}
     </TradeDesk>
   )
 }
@@ -383,11 +538,12 @@ function FilterRow({
   )
 }
 
-function StatRow({ stats }: { stats: { label: string; value: string; delta: string }[] }) {
+function StatRow({ stats, error, onRetry }: { stats: StatTile[] | undefined; error: ApiRequestError | undefined; onRetry: () => void }) {
+  if (error) return <div className="mt-[15px]"><ErrorBanner error={error} onRetry={onRetry} /></div>
   return (
     <div className="mt-[15px] grid grid-cols-4 gap-[15px]">
-      {stats.map((stat) => (
-        <article key={stat.label} className="flex h-[75px] items-center gap-2 rounded-[12px] bg-white px-3">
+      {(stats ?? []).map((stat) => (
+        <article key={stat.key} className="flex h-[75px] items-center gap-2 rounded-[12px] bg-white px-3">
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#E7F6EE] text-[#1F8955]">
             <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true">
               <path d="M4 20V10l8-5 8 5v10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
@@ -396,8 +552,8 @@ function StatRow({ stats }: { stats: { label: string; value: string; delta: stri
           </span>
           <span className="min-w-0">
             <span className="block text-[11px] leading-4 text-[#667085]">{stat.label}</span>
-            <span className="mt-0.5 block text-[18px] leading-6 font-bold text-[#1A1A1A]">{stat.value}</span>
-            <span className="block text-[11px] leading-4 font-medium text-[#1F8955]">{stat.delta}</span>
+            <span className="mt-0.5 block truncate text-[18px] leading-6 font-bold text-[#1A1A1A]">{statValue(stat)}</span>
+            {stat.note ? <span className="block text-[11px] leading-4 font-medium text-[#1F8955]">{stat.note}</span> : null}
           </span>
         </article>
       ))}
@@ -405,8 +561,8 @@ function StatRow({ stats }: { stats: { label: string; value: string; delta: stri
   )
 }
 
-function PhotoCell({ name }: { name: string }) {
-  return <img src={commodityImage(name)} alt="" className="size-[70px] rounded-[8px] object-cover" />
+function PhotoCell({ src }: { src: string }) {
+  return <img src={src} alt="" className="size-[70px] rounded-[8px] object-cover" />
 }
 
 function DetailStack({ name, grade, code }: { name: string; grade: string; code: string }) {
@@ -422,5 +578,3 @@ function DetailStack({ name, grade, code }: { name: string; grade: string; code:
 function EmptyNote({ children }: { children: ReactNode }) {
   return <p className="rounded-[12px] bg-white px-4 py-8 text-center text-[14px] text-[#667085]">{children}</p>
 }
-
-

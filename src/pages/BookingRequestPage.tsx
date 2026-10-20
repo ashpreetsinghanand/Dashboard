@@ -1,55 +1,101 @@
-import { useMemo, useState } from 'react'
+import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { api } from '../api/endpoints'
+import type { Booking, BookingStatus, DepositRequest, DepositResult } from '../api/types'
+import { useAuth } from '../auth/AuthContext'
 import { RequestLayout, StatusPill } from '../components/RequestLayout'
-import { commodityImage, readBookings } from '../data/bookings'
+import { Pager } from '../components/store/Pager'
+import { ErrorBanner, FieldError, LedgerTimeline, Modal } from '../components/ui'
+import { qtl, statusLabel, toUiDate } from '../lib/format'
+import { useAction, useApi } from '../lib/useApi'
 
-const seed = [
-  { id: 'coffee', commodity: 'Coffee', grade: 'Grade A', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', date: '21/09/2026', quantity: '500 Qtl', status: 'Pending' },
-  { id: 'turmeric', commodity: 'Turmeric', grade: 'Raw', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', date: '21/09/2026', quantity: '500 Qtl', status: 'Accepted' },
-  { id: 'cardamum', commodity: 'Cardamum', grade: 'Raw', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', date: '21/09/2026', quantity: '500 Qtl', status: 'Rejected' },
-  { id: 'pepper', commodity: 'Black Pepper', grade: 'Raw', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', date: '21/09/2026', quantity: '500 Qtl', status: 'Pending' },
-  { id: 'cumin', commodity: 'Cumin', grade: 'Raw', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', date: '21/09/2026', quantity: '500 Qtl', status: 'Accepted' },
-  { id: 'cumin-2', commodity: 'Cumin', grade: 'Raw', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', date: '21/09/2026', quantity: '500 Qtl', status: 'Accepted' },
-]
-
-const statuses = ['All Status', 'Pending', 'Accepted', 'Rejected']
+const statuses = ['All Status', 'Pending', 'Accepted', 'Rejected', 'Cancelled', 'Stored']
+const statusParam: Record<string, BookingStatus> = {
+  Pending: 'PENDING',
+  Accepted: 'ACCEPTED',
+  Rejected: 'REJECTED',
+  Cancelled: 'CANCELLED',
+  Stored: 'DEPOSITED',
+}
 const bookingCols = 'grid-cols-[140px_138px_123px_155px_123px_111px_75px]'
 
+type Dialog =
+  | { kind: 'accept' | 'reject'; booking: Booking }
+  | { kind: 'deposit'; booking: Booking }
+  | { kind: 'ledger'; booking: Booking }
+
 export function BookingRequestPage() {
-  const saved = useMemo(() => readBookings(), [])
-  const rows = useMemo(
-    () => [
-      ...saved.map((item) => ({
-        id: item.id,
-        commodity: item.commodity,
-        grade: item.grade,
-        warehouse: item.warehouse,
-        location: item.location,
-        date: item.date,
-        quantity: item.quantity.includes('Qtl') ? item.quantity : `${item.quantity} Qtl`,
-        status: item.status,
-      })),
-      ...seed,
-    ],
-    [saved],
-  )
-  const commodities = ['All Commodities', ...Array.from(new Set(rows.map((row) => row.commodity)))]
-  const dates = ['Select Date', ...Array.from(new Set(rows.map((row) => row.date)))]
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [applied, setApplied] = useState('')
   const [status, setStatus] = useState(statuses[0])
   const [commodity, setCommodity] = useState('All Commodities')
-  const [date, setDate] = useState(dates[0])
+  const [date, setDate] = useState('')
+  const [page, setPage] = useState(0)
   const [more, setMore] = useState(false)
+  const [menu, setMenu] = useState<number>()
+  const [dialog, setDialog] = useState<Dialog>()
+  const [notice, setNotice] = useState<string>()
 
-  const visible = rows.filter((row) => {
-    const text = applied.trim().toLowerCase()
-    const matchesText =
-      text === '' || `${row.commodity} ${row.warehouse} ${row.location}`.toLowerCase().includes(text)
-    const matchesStatus = status === 'All Status' || row.status === status
-    const matchesCommodity = commodity === 'All Commodities' || row.commodity === commodity
-    const matchesDate = date === 'Select Date' || row.date === date
-    return matchesText && matchesStatus && matchesCommodity && matchesDate
-  })
+  const reference = useApi(() => api.reference.commodities(), [])
+  const commodities = ['All Commodities', ...(reference.data?.map((item) => item.name) ?? [])]
+  const { data, loading, error, reload } = useApi(
+    () =>
+      api.bookings.search({
+        q: applied.trim() || undefined,
+        status: statusParam[status],
+        commodity: commodity === 'All Commodities' ? undefined : commodity,
+        date: date || undefined,
+        page,
+      }),
+    [applied, status, commodity, date, page],
+  )
+  const rows = data?.items ?? []
+  /** Every action reloads afterwards, success or not: INVALID_STATE usually means someone else changed the record. */
+  async function withReload<R>(call: () => Promise<R>): Promise<R> {
+    try {
+      return await call()
+    } finally {
+      reload()
+    }
+  }
+  const cancelAction = useAction((id: number) => withReload(() => api.bookings.cancel(id)))
+
+  const filter = (set: (value: string) => void) => (value: string) => {
+    set(value)
+    setPage(0)
+  }
+
+  async function cancel(booking: Booking) {
+    if (!window.confirm(`Cancel the ${booking.commodity} booking at ${booking.warehouseName}?`)) return
+    setNotice(undefined)
+    if (await cancelAction.run(booking.id)) setNotice(`Booking ${booking.code} cancelled.`)
+  }
+
+  function menuItems(booking: Booking): { label: string; onSelect: () => void }[] {
+    if (!user) return []
+    const depositor = user.id === booking.depositorId
+    const owner = user.role === 'WAREHOUSE_OWNER'
+    const items: { label: string; onSelect: () => void }[] = []
+    if (depositor && (booking.status === 'PENDING' || booking.status === 'ACCEPTED')) {
+      items.push({ label: 'Cancel', onSelect: () => void cancel(booking) })
+    }
+    if (owner && booking.status === 'PENDING') items.push({ label: 'Accept', onSelect: () => setDialog({ kind: 'accept', booking }) })
+    if (owner && booking.status === 'ACCEPTED') items.push({ label: 'Record arrival', onSelect: () => setDialog({ kind: 'deposit', booking }) })
+    if (owner && (booking.status === 'PENDING' || booking.status === 'ACCEPTED')) {
+      items.push({ label: 'Reject', onSelect: () => setDialog({ kind: 'reject', booking }) })
+    }
+    if (booking.status === 'DEPOSITED' && user.role !== 'AUDITOR') {
+      items.push({ label: 'View receipt', onSelect: () => navigate(owner ? '/owner/receipts' : '/trade/enwr') })
+    }
+    items.push({ label: 'Ledger history', onSelect: () => setDialog({ kind: 'ledger', booking }) })
+    return items
+  }
+
+  function closeDialog() {
+    setDialog(undefined)
+  }
 
   return (
     <RequestLayout
@@ -64,6 +110,7 @@ export function BookingRequestPage() {
         onSubmit={(event) => {
           event.preventDefault()
           setApplied(query)
+          setPage(0)
         }}
       >
         <label className="flex h-[30px] w-[376px] shrink-0 items-center gap-2 rounded-[8px] border border-[#E6E8EC] bg-white px-2.5">
@@ -76,9 +123,17 @@ export function BookingRequestPage() {
             className="w-full bg-transparent text-[13px] outline-none placeholder:text-[#98A2B3]"
           />
         </label>
-        <MiniSelect label="Status" value={status} options={statuses} onChange={setStatus} />
-        <MiniSelect label="Commodity" value={commodity} options={commodities} onChange={setCommodity} />
-        <MiniSelect label="Date" value={date} options={dates} onChange={setDate} />
+        <MiniSelect label="Status" value={status} options={statuses} onChange={filter(setStatus)} />
+        <MiniSelect label="Commodity" value={commodity} options={commodities} onChange={filter(setCommodity)} />
+        <label className="relative block h-[30px] w-[150px] shrink-0">
+          <input
+            type="date"
+            aria-label="Requested on"
+            value={date}
+            onChange={(event) => filter(setDate)(event.target.value)}
+            className={`h-full w-full rounded-[8px] border border-[#E6E8EC] bg-white px-2.5 text-[13px] outline-none ${date ? '' : 'text-[#98A2B3]'}`}
+          />
+        </label>
         <button
           type="button"
           onClick={() => setMore((open) => !open)}
@@ -101,7 +156,7 @@ export function BookingRequestPage() {
             <button
               key={item}
               type="button"
-              onClick={() => setCommodity(item)}
+              onClick={() => filter(setCommodity)(item)}
               className={`h-7 rounded-full px-3 text-[12px] ${
                 commodity === item ? 'bg-[#1F8955] text-white' : 'bg-white text-[#344054]'
               }`}
@@ -111,7 +166,22 @@ export function BookingRequestPage() {
           ))}
         </div>
       )}
-      <div className="mt-3 overflow-hidden rounded-[12px] bg-white">
+      {cancelAction.error ? (
+        <div className="mt-3">
+          <ErrorBanner error={cancelAction.error} />
+        </div>
+      ) : null}
+      {notice ? (
+        <p role="status" className="mt-3 rounded-[10px] bg-[#E7F6EE] px-4 py-3 text-[14px] text-[#1F8955]">
+          {notice}
+        </p>
+      ) : null}
+      {error ? (
+        <div className="mt-3">
+          <ErrorBanner error={error} onRetry={reload} />
+        </div>
+      ) : null}
+      <div className="mt-3 rounded-[12px] bg-white">
         <div className={`grid h-[50px] ${bookingCols} items-center pl-[15px] text-[13px] text-[#667085]`}>
           <span>Commodity</span>
           <span>Warehouse</span>
@@ -121,38 +191,243 @@ export function BookingRequestPage() {
           <span>Status</span>
           <span>Actions</span>
         </div>
-        {visible.length === 0 ? (
-          <p className="px-4 py-8 text-center text-[14px] text-[#667085]">No booking requests match these filters.</p>
+        {loading && !data ? (
+          <p className="px-4 py-8 text-center text-[14px] text-[#667085]">Loading booking requests…</p>
+        ) : rows.length === 0 ? (
+          error ? null : <p className="px-4 py-8 text-center text-[14px] text-[#667085]">No booking requests match these filters.</p>
         ) : (
-          visible.map((row) => (
-            <div
-              key={row.id}
-              className={`grid h-[70px] ${bookingCols} items-center border-t border-[#F2F4F7] pl-[15px] text-[13px]`}
-            >
-              <span className="flex items-center gap-2">
-                <img src={commodityImage(row.commodity)} alt="" className="size-10 shrink-0 rounded-[8px] object-cover" />
-                <span>
-                  <span className="block font-medium">{row.commodity}</span>
-                  <span className="text-[11px] text-[#98A2B3]">{row.grade}</span>
+          rows.map((row) => {
+            const items = menuItems(row)
+            return (
+              <div
+                key={row.id}
+                className={`grid min-h-[70px] ${bookingCols} items-center border-t border-[#F2F4F7] py-2 pl-[15px] text-[13px] ${loading ? 'opacity-60' : ''}`}
+              >
+                <span className="flex items-center gap-2">
+                  <img src={row.imageUrl} alt="" className="size-10 shrink-0 rounded-[8px] object-cover" />
+                  <span>
+                    <span className="block font-medium">{row.commodity}</span>
+                    <span className="text-[11px] text-[#98A2B3]">{row.grade}</span>
+                  </span>
                 </span>
-              </span>
-              <span className="w-16 leading-[15px]">{row.warehouse}</span>
-              <span>{row.location}</span>
-              <span>{row.date}</span>
-              <span>{row.quantity}</span>
-              <StatusPill status={row.status} className="w-[100px] justify-self-start" />
-              <button type="button" aria-label={`Actions for ${row.commodity}`} className="grid size-6 place-items-center text-[#667085]">
-                <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
-                  <circle cx="12" cy="6" r="1.4" fill="currentColor" />
-                  <circle cx="12" cy="12" r="1.4" fill="currentColor" />
-                  <circle cx="12" cy="18" r="1.4" fill="currentColor" />
-                </svg>
-              </button>
-            </div>
-          ))
+                <span className="w-16 leading-[15px]">{row.warehouseName}</span>
+                <span>{row.warehouseLocation}</span>
+                <span>{toUiDate(row.createdAt)}</span>
+                <span>{qtl(row.quantityQtl)}</span>
+                <span className="grid justify-items-start gap-1">
+                  <StatusPill status={statusLabel(row.status)} className="w-[100px]" />
+                  {row.decisionNote ? (
+                    <span title={row.decisionNote} className="line-clamp-2 pr-2 text-[11px] leading-[13px] text-[#667085]">
+                      {row.decisionNote}
+                    </span>
+                  ) : null}
+                </span>
+                <span className="relative">
+                  <button
+                    type="button"
+                    aria-label={`Actions for ${row.commodity}`}
+                    aria-haspopup="menu"
+                    aria-expanded={menu === row.id}
+                    disabled={cancelAction.busy}
+                    onClick={() => setMenu((open) => (open === row.id ? undefined : row.id))}
+                    className="grid size-6 place-items-center text-[#667085] disabled:opacity-40"
+                  >
+                    <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
+                      <circle cx="12" cy="6" r="1.4" fill="currentColor" />
+                      <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+                      <circle cx="12" cy="18" r="1.4" fill="currentColor" />
+                    </svg>
+                  </button>
+                  {menu === row.id && (
+                    <>
+                      <button type="button" aria-label="Close menu" className="fixed inset-0 z-10 cursor-default" onClick={() => setMenu(undefined)} />
+                      <span role="menu" className="absolute top-7 right-2 z-20 grid w-[160px] rounded-[10px] border border-[#E6E8EC] bg-white py-1 shadow-[0_12px_30px_rgba(16,24,40,0.12)]">
+                        {items.map((item) => (
+                          <button
+                            key={item.label}
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setMenu(undefined)
+                              setNotice(undefined)
+                              item.onSelect()
+                            }}
+                            className={`px-3 py-2 text-left text-[13px] hover:bg-[#F9FAFB] ${
+                              item.label === 'Cancel' || item.label === 'Reject' ? 'text-[#D92D20]' : 'text-[#344054]'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </span>
+                    </>
+                  )}
+                </span>
+              </div>
+            )
+          })
         )}
       </div>
+      <Pager page={page} totalPages={data?.totalPages ?? 0} onPage={setPage} />
+
+      {(dialog?.kind === 'accept' || dialog?.kind === 'reject') && (
+        <DecisionModal
+          kind={dialog.kind}
+          booking={dialog.booking}
+          onClose={closeDialog}
+          submit={(note) => {
+            const id = dialog.booking.id
+            return withReload(() => (dialog.kind === 'accept' ? api.bookings.accept(id, note) : api.bookings.reject(id, note)))
+          }}
+          onDone={() => {
+            setNotice(`Booking ${dialog.booking.code} ${dialog.kind === 'accept' ? 'accepted' : 'rejected'}.`)
+            closeDialog()
+          }}
+        />
+      )}
+      {dialog?.kind === 'deposit' && (
+        <DepositModal
+          booking={dialog.booking}
+          onClose={closeDialog}
+          submit={(body) => withReload(() => api.bookings.deposit(dialog.booking.id, body))}
+          onDone={({ receipt, invoice }) => {
+            setNotice(`Arrival recorded: receipt ${receipt.receiptNo} is awaiting audit, invoice ${invoice.invoiceNo} issued.`)
+            closeDialog()
+          }}
+        />
+      )}
+      {dialog?.kind === 'ledger' && (
+        <Modal title={`Ledger history · ${dialog.booking.code}`} onClose={closeDialog}>
+          <LedgerTimeline load={() => api.bookings.ledger(dialog.booking.id)} />
+        </Modal>
+      )}
     </RequestLayout>
+  )
+}
+
+function DecisionModal({
+  kind,
+  booking,
+  onClose,
+  submit,
+  onDone,
+}: {
+  kind: 'accept' | 'reject'
+  booking: Booking
+  onClose: () => void
+  submit: (note: string | undefined) => Promise<Booking>
+  onDone: () => void
+}) {
+  const { run, busy, error } = useAction(submit)
+  const [note, setNote] = useState('')
+  const verb = kind === 'accept' ? 'Accept' : 'Reject'
+  return (
+    <Modal title={`${verb} booking`} onClose={onClose} width="w-[420px]">
+      <form
+        onSubmit={(event: FormEvent) => {
+          event.preventDefault()
+          void run(note.trim() || undefined).then((done) => done && onDone())
+        }}
+      >
+        <p className="text-[14px] text-[#667085]">
+          {booking.depositorName} · {booking.commodity} · {qtl(booking.quantityQtl)} at {booking.warehouseName}
+        </p>
+        <label className="mt-4 block text-[14px] leading-[19px]" htmlFor="decision-note">
+          Note to depositor (optional)
+        </label>
+        <textarea
+          id="decision-note"
+          value={note}
+          maxLength={500}
+          onChange={(event) => setNote(event.target.value)}
+          placeholder={kind === 'accept' ? 'E.g. Bring produce between 9 am and 5 pm' : 'E.g. Chamber under maintenance this month'}
+          className="mt-2.5 h-24 w-full rounded-[8px] border border-[#E6E8EC] px-2.5 py-2 text-[14px] outline-none placeholder:text-[#98A2B3]"
+        />
+        <FieldError message={error?.fieldMessage('note') ?? error?.message} />
+        <button
+          type="submit"
+          disabled={busy}
+          className={`mt-4 h-12 w-full rounded-[8px] text-[16px] font-semibold text-white disabled:opacity-60 ${
+            kind === 'accept' ? 'bg-[#1F8955]' : 'bg-[#D92D20]'
+          }`}
+        >
+          {busy ? 'Saving…' : verb}
+        </button>
+      </form>
+    </Modal>
+  )
+}
+
+function DepositModal({
+  booking,
+  onClose,
+  submit,
+  onDone,
+}: {
+  booking: Booking
+  onClose: () => void
+  submit: (body: DepositRequest) => Promise<DepositResult>
+  onDone: (result: DepositResult) => void
+}) {
+  const { run, busy, error } = useAction(submit)
+  const [weight, setWeight] = useState(String(booking.quantityMt))
+  const [grade, setGrade] = useState(booking.grade)
+  const [moisture, setMoisture] = useState('')
+  const [formError, setFormError] = useState<string>()
+  const input = 'mt-2.5 h-12 w-full rounded-[8px] border border-[#E6E8EC] px-2.5 text-[14px] outline-none placeholder:text-[#98A2B3]'
+  const fieldError = (field: string) => error?.fieldMessage(field)
+
+  return (
+    <Modal title="Record arrival" onClose={onClose} width="w-[420px]">
+      <form
+        onSubmit={(event: FormEvent) => {
+          event.preventDefault()
+          setFormError(undefined)
+          const netWeightMt = Number(weight)
+          const moisturePct = moisture.trim() ? Number(moisture) : undefined
+          if (!(netWeightMt > 0)) return setFormError('Net weight must be a number above 0')
+          if (moisturePct !== undefined && !(moisturePct >= 0 && moisturePct <= 100)) return setFormError('Moisture must be between 0 and 100')
+          if (!grade.trim()) return setFormError('Grade is required')
+          void run({ netWeightMt, grade: grade.trim(), moisturePct }).then((result) => result && onDone(result))
+        }}
+      >
+        <p className="text-[14px] text-[#667085]">
+          {booking.code} · {booking.commodity} · booked {qtl(booking.quantityQtl)} by {booking.depositorName}
+        </p>
+        <label className="mt-4 block text-[14px] leading-[19px]" htmlFor="arrival-weight">
+          Net weight (MT)*
+        </label>
+        <input id="arrival-weight" inputMode="decimal" value={weight} onChange={(event) => setWeight(event.target.value)} className={input} />
+        <FieldError message={fieldError('netWeightMt')} />
+        <label className="mt-[15px] block text-[14px] leading-[19px]" htmlFor="arrival-grade">
+          Grade*
+        </label>
+        <input id="arrival-grade" value={grade} onChange={(event) => setGrade(event.target.value)} className={input} />
+        <FieldError message={fieldError('grade')} />
+        <label className="mt-[15px] block text-[14px] leading-[19px]" htmlFor="arrival-moisture">
+          Moisture %
+        </label>
+        <input
+          id="arrival-moisture"
+          inputMode="decimal"
+          value={moisture}
+          onChange={(event) => setMoisture(event.target.value)}
+          placeholder="E.g. 11.5"
+          className={input}
+        />
+        <FieldError message={fieldError('moisturePct')} />
+        <FieldError
+          message={formError ?? (error && !fieldError('netWeightMt') && !fieldError('grade') && !fieldError('moisturePct') ? error.message : undefined)}
+        />
+        <button
+          type="submit"
+          disabled={busy}
+          className="mt-4 h-12 w-full rounded-[8px] bg-[#1F8955] text-[16px] font-semibold text-white disabled:opacity-60"
+        >
+          {busy ? 'Saving…' : 'Record arrival'}
+        </button>
+      </form>
+    </Modal>
   )
 }
 

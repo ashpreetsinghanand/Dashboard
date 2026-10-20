@@ -1,38 +1,97 @@
-import { useMemo, useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { api } from '../api/endpoints'
+import type { Invoice, InvoiceStatus } from '../api/types'
+import { useAuth } from '../auth/AuthContext'
 import { RequestLayout, StatusPill } from '../components/RequestLayout'
-import { commodityImage } from '../data/bookings'
-
-const invoices = [
-  { id: 'coffee', commodity: 'Coffee', detail: '100MT - Grade A', invoice: 'INV-2026-00125', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', charge: '500 MT', total: '500 Qtl', status: 'Paid' },
-  { id: 'turmeric', commodity: 'Turmeric', detail: 'Raw', invoice: 'INV-2026-00125', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', charge: '500 MT', total: '500 Qtl', status: 'Pending' },
-  { id: 'cardamum', commodity: 'Cardamum', detail: 'Raw', invoice: 'INV-2026-00125', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', charge: '', total: '500 Qtl', status: 'Paid' },
-  { id: 'pepper', commodity: 'Black Pepper', detail: 'Raw', invoice: 'INV-2026-00125', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', charge: '', total: '500 Qtl', status: 'Paid' },
-  { id: 'cumin', commodity: 'Cumin', detail: 'Raw', invoice: 'INV-2026-00125', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', charge: '', total: '500 Qtl', status: 'Pending' },
-  { id: 'clove', commodity: 'Clove', detail: 'Raw', invoice: 'INV-2026-00125', warehouse: 'Nayak Warehouse', location: 'Lalitpur, UP', charge: '', total: '500 Qtl', status: 'Paid' },
-]
+import { Pager } from '../components/store/Pager'
+import { ErrorBanner, LedgerTimeline, Modal } from '../components/ui'
+import { money, mt, shortHash, statusLabel, toUiDate } from '../lib/format'
+import { useAction, useApi } from '../lib/useApi'
 
 const invoiceCols = 'grid-cols-[86px_113px_98px_119px_82px_110px_71px_186px]'
 
-const statusChips = ['All', 'Paid', 'Pending', 'Overdue', 'Draft', 'Cancelled']
-const commodityChips = ['All Commodities', 'Pending', 'Overdue', 'Draft', 'Cancelled']
+const statusChips = ['All', 'Paid', 'Pending', 'Overdue', 'Cancelled']
 
 export function StorageInvoicePage() {
+  const { user } = useAuth()
   const [query, setQuery] = useState('')
   const [applied, setApplied] = useState('')
   const [status, setStatus] = useState('All')
-  const [second, setSecond] = useState('All Commodities')
+  const [commodity, setCommodity] = useState('All Commodities')
+  const [page, setPage] = useState(0)
   const [layout, setLayout] = useState<'list' | 'grid'>('list')
+  const [details, setDetails] = useState<Invoice>()
+  const [notice, setNotice] = useState<string>()
 
-  const visible = useMemo(() => {
-    const text = applied.trim().toLowerCase()
-    return invoices.filter((row) => {
-      const matchesText =
-        text === '' || `${row.commodity} ${row.warehouse} ${row.location} ${row.invoice}`.toLowerCase().includes(text)
-      const matchesStatus = status === 'All' || row.status === status
-      const matchesSecond = second === 'All Commodities' || row.status === second
-      return matchesText && matchesStatus && matchesSecond
-    })
-  }, [applied, second, status])
+  const reference = useApi(() => api.reference.commodities(), [])
+  const commodityChips = ['All Commodities', ...(reference.data?.map((item) => item.name) ?? [])]
+  const { data, loading, error, reload } = useApi(
+    () =>
+      api.invoices.search({
+        q: applied.trim() || undefined,
+        status: status === 'All' ? undefined : (status.toUpperCase() as InvoiceStatus),
+        commodity: commodity === 'All Commodities' ? undefined : commodity,
+        page,
+      }),
+    [applied, status, commodity, page],
+  )
+  const visible = data?.items ?? []
+
+  // Pay and cancel reload whatever happens: INVALID_STATE usually means the invoice changed elsewhere.
+  const change = useAction(async (call: () => Promise<Invoice>) => {
+    try {
+      return await call()
+    } finally {
+      reload()
+    }
+  })
+  const download = useAction(api.invoices.download)
+  const busy = change.busy || download.busy
+
+  async function pay(row: Invoice) {
+    if (!window.confirm(`Pay ${money(row.amount, row.currency)} for ${row.invoiceNo}?`)) return
+    setNotice(undefined)
+    const paid = await change.run(() => api.invoices.pay(row.id))
+    if (paid) setNotice(`${paid.invoiceNo} paid${paid.paymentRef ? ` · ref ${paid.paymentRef}` : ''}.`)
+  }
+
+  async function cancel(row: Invoice) {
+    if (!window.confirm(`Cancel ${row.invoiceNo}? The depositor will no longer be billed for it.`)) return
+    setNotice(undefined)
+    if (await change.run(() => api.invoices.cancel(row.id))) setNotice(`${row.invoiceNo} cancelled.`)
+  }
+
+  function actions(row: Invoice): ReactNode {
+    const canPay = user?.id === row.depositorId && (row.status === 'PENDING' || row.status === 'OVERDUE')
+    const canCancel = user?.role === 'WAREHOUSE_OWNER' && row.status === 'PENDING'
+    return (
+      <>
+        <button type="button" onClick={() => setDetails(row)} className="flex items-center gap-1 whitespace-nowrap">
+          <EyeIcon />
+          View Details
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void download.run(row.id)}
+          className="flex items-center gap-1 whitespace-nowrap disabled:opacity-50"
+        >
+          <DownloadIcon />
+          Download
+        </button>
+        {canPay && (
+          <button type="button" disabled={busy} onClick={() => void pay(row)} className="font-semibold whitespace-nowrap disabled:opacity-50">
+            Pay
+          </button>
+        )}
+        {canCancel && (
+          <button type="button" disabled={busy} onClick={() => void cancel(row)} className="whitespace-nowrap text-[#D92D20] disabled:opacity-50">
+            Cancel
+          </button>
+        )}
+      </>
+    )
+  }
 
   return (
     <RequestLayout
@@ -47,6 +106,7 @@ export function StorageInvoicePage() {
         onSubmit={(event) => {
           event.preventDefault()
           setApplied(query)
+          setPage(0)
         }}
       >
         <label className="flex h-[30px] min-w-0 flex-1 items-center gap-2 rounded-[8px] border border-[#E6E8EC] bg-white px-2.5">
@@ -70,7 +130,10 @@ export function StorageInvoicePage() {
           <button
             key={chip}
             type="button"
-            onClick={() => setStatus(chip)}
+            onClick={() => {
+              setStatus(chip)
+              setPage(0)
+            }}
             className={`h-[30px] rounded-full px-3 text-[13px] ${
               status === chip ? 'bg-[#E7F6EE] font-medium text-[#1F8955]' : 'bg-white text-[#344054]'
             }`}
@@ -84,9 +147,12 @@ export function StorageInvoicePage() {
           <button
             key={chip}
             type="button"
-            onClick={() => setSecond(chip)}
+            onClick={() => {
+              setCommodity(chip)
+              setPage(0)
+            }}
             className={`h-[30px] rounded-full px-3 text-[13px] ${
-              second === chip ? 'bg-[#1F8955] text-white' : 'border border-[#E6E8EC] bg-white text-[#344054]'
+              commodity === chip ? 'bg-[#1F8955] text-white' : 'border border-[#E6E8EC] bg-white text-[#344054]'
             }`}
           >
             {chip}
@@ -111,12 +177,28 @@ export function StorageInvoicePage() {
           </button>
         </div>
       </div>
-      {visible.length === 0 ? (
+      {change.error || download.error ? (
+        <div className="mt-3">
+          <ErrorBanner error={change.error ?? download.error} />
+        </div>
+      ) : null}
+      {notice ? (
+        <p role="status" className="mt-3 rounded-[10px] bg-[#E7F6EE] px-4 py-3 text-[14px] text-[#1F8955]">
+          {notice}
+        </p>
+      ) : null}
+      {error ? (
+        <div className="mt-3">
+          <ErrorBanner error={error} onRetry={reload} />
+        </div>
+      ) : loading && !data ? (
+        <p className="mt-3 rounded-[12px] bg-white px-4 py-8 text-center text-[14px] text-[#667085]">Loading invoices…</p>
+      ) : visible.length === 0 ? (
         <p className="mt-3 rounded-[12px] bg-white px-4 py-8 text-center text-[14px] text-[#667085]">
           No invoices match these filters.
         </p>
       ) : layout === 'list' ? (
-        <div className="mt-3 overflow-hidden rounded-[12px] bg-white">
+        <div className={`mt-3 overflow-hidden rounded-[12px] bg-white ${loading ? 'opacity-60' : ''}`}>
           <div className={`grid h-[50px] ${invoiceCols} items-center pl-[15px] text-[12px] text-[#667085]`}>
             <span>Commodity</span>
             <span>Invoice Details</span>
@@ -130,51 +212,91 @@ export function StorageInvoicePage() {
           {visible.map((row) => (
             <div
               key={row.id}
-              className={`grid h-[70px] ${invoiceCols} items-center border-t border-[#F2F4F7] pl-[15px] text-[13px]`}
+              className={`grid min-h-[70px] ${invoiceCols} items-center border-t border-[#F2F4F7] py-2 pl-[15px] text-[13px]`}
             >
-              <img src={commodityImage(row.commodity)} alt="" className="size-10 rounded-[8px] object-cover" />
+              <img src={row.imageUrl} alt="" className="size-10 rounded-[8px] object-cover" />
               <span>
                 <span className="block leading-[15px] font-medium">{row.commodity}</span>
-                <span className="block text-[11px] leading-3 text-[#98A2B3]">{row.detail}</span>
-                <span className="mt-0.5 inline-block rounded-[2px] bg-[#F2F4F7] px-1 text-[8px] leading-[10px] text-[#98A2B3]">{row.invoice}</span>
+                <span className="block text-[11px] leading-3 text-[#98A2B3]">
+                  {mt(row.quantityMt)} - {row.grade}
+                </span>
+                <span className="mt-0.5 inline-block rounded-[2px] bg-[#F2F4F7] px-1 text-[8px] leading-[10px] text-[#98A2B3]">{row.invoiceNo}</span>
               </span>
-              <span className="w-16 leading-[15px]">{row.warehouse}</span>
-              <span>{row.location}</span>
-              <span>{row.charge}</span>
-              <span>{row.total}</span>
-              <StatusPill status={row.status} className="w-[60px] justify-self-start" />
-              <span className="flex items-center gap-3 text-[12px] whitespace-nowrap text-[#1F8955]">
-                <button type="button" className="flex items-center gap-1">
-                  <EyeIcon />
-                  View Details
-                </button>
-                <button type="button" className="flex items-center gap-1">
-                  <DownloadIcon />
-                  Download
-                </button>
+              <span className="w-16 leading-[15px]">{row.warehouseName}</span>
+              <span className="pr-2 leading-[15px]">
+                {toUiDate(row.periodFrom)} – {toUiDate(row.periodTo)}
               </span>
+              {/* the rate has no natural break point and overflowed its 82px column, so split it */}
+              <span className="pr-2 leading-[15px]">
+                {money(row.ratePerMtMonth, row.currency)}
+                <span className="block text-[11px] text-[#98A2B3]">/MT/month</span>
+              </span>
+              <span>{money(row.amount, row.currency)}</span>
+              <StatusPill status={statusLabel(row.status)} className="w-[60px] justify-self-start" />
+              <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[#1F8955]">{actions(row)}</span>
             </div>
           ))}
         </div>
       ) : (
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className={`mt-3 grid grid-cols-2 gap-3 ${loading ? 'opacity-60' : ''}`}>
           {visible.map((row) => (
             <article key={row.id} className="flex gap-3 rounded-[12px] bg-white p-3">
-              <img src={commodityImage(row.commodity)} alt="" className="size-16 rounded-[8px] object-cover" />
+              <img src={row.imageUrl} alt="" className="size-16 rounded-[8px] object-cover" />
               <div className="min-w-0 text-[13px]">
                 <p className="font-semibold">{row.commodity}</p>
-                <p className="text-[12px] text-[#98A2B3]">{row.detail}</p>
-                <p className="mt-1">{row.invoice}</p>
-                <p className="text-[#667085]">{row.location}</p>
+                <p className="text-[12px] text-[#98A2B3]">
+                  {mt(row.quantityMt)} - {row.grade}
+                </p>
+                <p className="mt-1">{row.invoiceNo}</p>
+                <p className="text-[#667085]">
+                  {row.warehouseName}, {row.warehouseLocation}
+                </p>
+                <p className="font-semibold">{money(row.amount, row.currency)}</p>
                 <div className="mt-2">
-                  <StatusPill status={row.status} />
+                  <StatusPill status={statusLabel(row.status)} />
                 </div>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[#1F8955]">{actions(row)}</div>
               </div>
             </article>
           ))}
         </div>
       )}
+      <Pager page={page} totalPages={data?.totalPages ?? 0} onPage={setPage} />
+
+      {details && (
+        <Modal title={`Invoice ${details.invoiceNo}`} onClose={() => setDetails(undefined)}>
+          <dl className="grid grid-cols-[140px_1fr] gap-x-3 gap-y-2 text-[13px]">
+            <Detail label="Receipt">{details.receiptNo}</Detail>
+            <Detail label="Depositor">{details.depositorName}</Detail>
+            <Detail label="Warehouse">
+              {details.warehouseName}, {details.warehouseLocation}
+            </Detail>
+            <Detail label="Storage period">
+              {toUiDate(details.periodFrom)} – {toUiDate(details.periodTo)} ({details.storageDays} days)
+            </Detail>
+            <Detail label="Amount">{money(details.amount, details.currency)}</Detail>
+            <Detail label="Status">{statusLabel(details.status)}</Detail>
+            <Detail label="Due date">{toUiDate(details.dueDate)}</Detail>
+            <Detail label="Paid at">{details.paidAt ? new Date(details.paidAt).toLocaleString('en-IN') : '-'}</Detail>
+            <Detail label="Payment ref">{details.paymentRef ?? '-'}</Detail>
+            <Detail label="Ledger hash">
+              <code title={details.ledgerHash ?? undefined}>{shortHash(details.ledgerHash)}</code>
+            </Detail>
+          </dl>
+          <h3 className="mt-5 mb-2 text-[15px] font-semibold">Ledger history</h3>
+          <LedgerTimeline load={() => api.ledger.entity('INVOICE', details.id)} />
+        </Modal>
+      )}
     </RequestLayout>
+  )
+}
+
+function Detail({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <>
+      <dt className="text-[#667085]">{label}</dt>
+      <dd className="font-medium text-[#1E1E1E]">{children}</dd>
+    </>
   )
 }
 

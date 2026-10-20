@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { DashboardShell, type ShellSection, type StorePage, type TradePage } from './DashboardShell'
+import { extraTones } from '../lib/format'
+import { DashboardShell, type AuditPage, type OwnerPage, type ShellSection, type StorePage, type TradePage } from './DashboardShell'
 
 export function RequestLayout({
   section,
   storePage,
   tradePage,
+  ownerPage,
+  auditPage,
   crumb,
   title,
   subtitle,
@@ -15,6 +18,8 @@ export function RequestLayout({
   section: ShellSection
   storePage?: StorePage
   tradePage?: TradePage
+  ownerPage?: OwnerPage
+  auditPage?: AuditPage
   crumb: string
   title: string
   subtitle: string
@@ -22,11 +27,11 @@ export function RequestLayout({
   children: ReactNode
 }) {
   return (
-    <DashboardShell section={section} storePage={storePage} tradePage={tradePage}>
+    <DashboardShell section={section} storePage={storePage} tradePage={tradePage} ownerPage={ownerPage} auditPage={auditPage}>
       <main className="min-w-0 flex-1 px-5 pt-[15px] pb-8">
         <div className="flex items-center gap-2 text-[14px] leading-[15px]">
-          <Link to={section === 'trade' ? '/trade/enwr' : '/store'} className="text-[#667085]">
-            {section === 'trade' ? 'Trade' : 'Store'}
+          <Link to={crumbRoot[section]?.to ?? '/store'} className="text-[#667085]">
+            {crumbRoot[section]?.label ?? 'Store'}
           </Link>
           <span className="text-[#98A2B3]">&gt;</span>
           <span className="font-semibold text-[#1F8955]">{crumb}</span>
@@ -69,7 +74,15 @@ export function RequestLayout({
   )
 }
 
+const crumbRoot: Partial<Record<ShellSection, { label: string; to: string }>> = {
+  store: { label: 'Store', to: '/store' },
+  trade: { label: 'Trade', to: '/trade/enwr' },
+  owner: { label: 'My Warehouses', to: '/owner/warehouses' },
+  audit: { label: 'Audit', to: '/audit/inspections' },
+}
+
 const tones: Record<string, string> = {
+  ...extraTones,
   Pending: 'bg-[#FFF6DE] text-[#B54708]',
   Accepted: 'bg-[#E7F6EE] text-[#1F8955]',
   Rejected: 'bg-[#FEE4E2] text-[#D92D20]',

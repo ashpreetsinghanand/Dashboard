@@ -1,6 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { api } from '../api/endpoints'
+import { signupDraft } from '../auth/AuthContext'
 import { AuthScreen } from '../components/AuthScreen'
+import { FieldError } from '../components/ui'
+import { useAction } from '../lib/useApi'
 
 function IndiaFlag() {
   return (
@@ -15,12 +19,16 @@ function IndiaFlag() {
 
 export function PhonePage() {
   const navigate = useNavigate()
-  const [phone, setPhone] = useState('')
+  const [phone, setPhone] = useState(() => signupDraft.read().phone ?? '')
+  const send = useAction(api.auth.sendOtp)
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
-    sessionStorage.setItem('krsi-phone', phone)
-    navigate('/signup/otp')
+    const sent = await send.run(phone, 'SIGNUP')
+    if (!sent) return
+    signupDraft.merge({ phone, challengeId: sent.challengeId, resendAfterSeconds: sent.resendAfterSeconds })
+    // devOtp is only returned by a local backend; the OTP page shows it so testers can sign up without SMS
+    navigate('/signup/otp', { state: { devOtp: sent.devOtp } })
   }
 
   return (
@@ -31,7 +39,7 @@ export function PhonePage() {
     >
       <form
         onSubmit={submit}
-        className="mt-[30px] h-[400px] w-[350px] rounded-[16px] bg-white px-[15px] pt-[15px] shadow-[0_10px_30px_rgba(16,24,40,0.06)]"
+        className="mt-[30px] min-h-[400px] w-[350px] rounded-[16px] bg-white px-[15px] pt-[15px] pb-4 shadow-[0_10px_30px_rgba(16,24,40,0.06)]"
       >
         <h2 className="text-center text-[24px] leading-none font-bold">Sign Up</h2>
         <p className="mx-auto mt-3 w-[320px] text-center text-[14px] leading-[19px] text-[#9AA0A6]">
@@ -54,11 +62,18 @@ export function PhonePage() {
             />
           </div>
         </div>
+        <FieldError message={send.error?.fieldMessage('phone') ?? send.error?.message} />
+        {send.error?.error.code === 'CONFLICT' ? (
+          <Link to="/login" className="mt-1 block text-[12px] font-medium text-[#2F6BFF]">
+            Go to Sign In
+          </Link>
+        ) : null}
         <button
           type="submit"
-          className="mt-2.5 h-12 w-full rounded-[8px] bg-[#1F8955] text-[16px] font-medium text-white"
+          disabled={send.busy || phone.length !== 10}
+          className="mt-2.5 h-12 w-full rounded-[8px] bg-[#1F8955] text-[16px] font-medium text-white disabled:opacity-60"
         >
-          Continue
+          {send.busy ? 'Sending code…' : 'Continue'}
         </button>
         <div className="mt-7 flex items-center gap-3 text-[14px] text-[#98A2B3]">
           <span className="h-px flex-1 bg-[#E6E8EC]" />
@@ -66,9 +81,9 @@ export function PhonePage() {
           <span className="h-px flex-1 bg-[#E6E8EC]" />
         </div>
         <p className="mt-6 text-center text-[14px] text-[#667085]">
-          Don&apos;t have an account?{' '}
-          <Link to="/signup" className="font-medium text-[#2F6BFF]">
-            Register
+          Already have an account?{' '}
+          <Link to="/login" className="font-medium text-[#2F6BFF]">
+            Sign In
           </Link>
         </p>
       </form>
