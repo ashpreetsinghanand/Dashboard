@@ -367,7 +367,8 @@ export function WarehouseDetailPage() {
                 ? `Average of ${warehouse.ratingCount} auditor visit${warehouse.ratingCount === 1 ? '' : 's'} at ${warehouse.name}.`
                 : `${warehouse.name} has not been audited yet.`}
             </p>
-            {warehouse.latestAudit && (
+            {/* the audit list needs a session; signed-out visitors see the latest audit from the public details */}
+            {user ? <AuditHistory warehouseId={warehouse.id} /> : warehouse.latestAudit && (
               <div className="mt-4 rounded-[10px] border border-[#E6E8EC] p-3 text-[13px]">
                 <p className="font-semibold">
                   Latest audit · {toUiDate(warehouse.latestAudit.auditedOn)} ·{' '}
@@ -393,6 +394,27 @@ export function WarehouseDetailPage() {
         </button>
       )}
     </DashboardShell>
+  )
+}
+
+function AuditHistory({ warehouseId }: { warehouseId: string }) {
+  const audits = useApi(() => api.warehouses.audits(warehouseId), [warehouseId])
+  if (audits.error) return <div className="mt-4"><ErrorBanner error={audits.error} onRetry={audits.reload} /></div>
+  if (audits.loading && !audits.data) return <p className="mt-4 text-[13px] text-[#667085]">Loading audit history…</p>
+  return (
+    <ol className="mt-4 grid gap-3">
+      {audits.data?.map((audit) => (
+        <li key={audit.id} className="rounded-[10px] border border-[#E6E8EC] p-3 text-[13px]">
+          <p className="font-semibold">
+            {audit.code} · {toUiDate(audit.auditedOn)} · {audit.result.replaceAll('_', ' ').toLowerCase()} · {audit.rating}/5
+          </p>
+          <p className="mt-1 text-[#667085]">
+            {audit.auditorName} · stock {mt(audit.stockVerifiedMt)} verified of {mt(audit.stockRecordedMt)} recorded
+          </p>
+          {audit.findings ? <p className="mt-1 text-[#667085]">{audit.findings}</p> : null}
+        </li>
+      ))}
+    </ol>
   )
 }
 

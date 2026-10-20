@@ -1,4 +1,5 @@
 import { Fragment, useState, type FormEvent, type ReactNode } from 'react'
+import { KrsiLogo } from './PublicHeader'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Role } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
@@ -55,7 +56,7 @@ const auditLinks = [
   { label: 'Ledger', to: '/audit/ledger' },
 ]
 
-export type ShellSection = 'home' | 'store' | 'marketplace' | 'trade' | 'owner' | 'audit'
+export type ShellSection = 'home' | 'store' | 'marketplace' | 'trade' | 'owner' | 'audit' | 'alerts' | 'settings'
 export type StorePage = 'Find Warehouse' | 'Booking Request' | 'Storage Invoice'
 export type TradePage = 'My eNWR' | 'My Listing' | 'My Bid' | 'Trade History' | 'My Loans'
 export type OwnerPage = 'My Warehouses' | 'Stored Receipts'
@@ -63,10 +64,10 @@ export type AuditPage = 'Inspections' | 'Warehouse Audits' | 'Ledger'
 
 const navLower: { label: string; icon: typeof HomeIcon; to?: string; roles?: Role[] }[] = [
   { label: 'My Loans', icon: SackIcon, to: '/trade/loans', roles: TRADERS },
-  { label: 'Price Alerts', icon: BellIcon },
+  { label: 'Price Alerts', icon: BellIcon, to: '/alerts' },
   { label: 'Analytics', icon: ChartIcon },
   { label: 'Message', icon: MailIcon },
-  { label: 'Setting', icon: GearIcon },
+  { label: 'Setting', icon: GearIcon, to: '/settings' },
 ]
 
 export function DashboardShell({
@@ -133,7 +134,11 @@ export function DashboardShell({
           <nav className={`${section === 'home' || section === 'marketplace' ? 'mt-[121px]' : 'mt-8'} grid`}>
             {navLower.filter((item) => can(item.roles)).map((item) => {
               const className = `flex h-10 items-center gap-[15px] rounded-[8px] px-2.5 text-left text-[14px] leading-[17px] ${
-                section === 'trade' && tradePage === item.label ? 'bg-[#E7F6EE] font-semibold text-[#1F8955]' : 'text-[#344054]'
+                (section === 'trade' && tradePage === item.label) ||
+                (section === 'alerts' && item.label === 'Price Alerts') ||
+                (section === 'settings' && item.label === 'Setting')
+                  ? 'bg-[#E7F6EE] font-semibold text-[#1F8955]'
+                  : 'text-[#344054]'
               }`
               const body = (
                 <>
@@ -146,9 +151,11 @@ export function DashboardShell({
                   {body}
                 </Link>
               ) : (
-                <button key={item.label} type="button" className={className}>
+                // no backend for these yet; say so instead of a button that does nothing
+                <span key={item.label} aria-disabled="true" title="Coming soon" className={`${className} cursor-default opacity-60`}>
                   {body}
-                </button>
+                  <span className="ml-auto rounded-full bg-[#F2F4F7] px-1.5 text-[10px] text-[#667085]">Soon</span>
+                </span>
               )
             })}
           </nav>
@@ -162,12 +169,12 @@ export function DashboardShell({
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              className="mt-3 h-[30px] w-full rounded-[8px] border border-[#D0D5DD] text-[13px] leading-[17px]"
+            <a
+              href="mailto:support@krsi.com?subject=Help%20with%20Krsi"
+              className="mt-3 grid h-[30px] w-full place-items-center rounded-[8px] border border-[#D0D5DD] text-[13px] leading-[17px]"
             >
               Contact Support
-            </button>
+            </a>
           </div>
         </aside>
   )
@@ -210,7 +217,9 @@ function AppTopBar() {
 
   return (
     <header className="sticky top-0 z-20 flex h-[60px] items-center bg-white pr-5">
-      <div className="w-[200px] shrink-0" />
+      <div className="w-[200px] shrink-0 pl-5">
+        <KrsiLogo to="/dashboard" />
+      </div>
       <form onSubmit={search} className="ml-5 flex h-[35px] w-[520px] items-center gap-2 rounded-[8px] border border-[#E6E8EC] bg-white px-2.5">
         <SearchMini className="size-5 text-[#98A2B3]" />
         <input

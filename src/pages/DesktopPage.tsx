@@ -1,36 +1,12 @@
-import { useEffect, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { api } from '../api/endpoints'
 import { DiscordIcon, LinkedinIcon, TelegramIcon, XIcon } from '../components/Icons'
 import { PublicHeader } from '../components/PublicHeader'
+import { money, mt, pct, perKg, perMt } from '../lib/format'
+import { useApi } from '../lib/useApi'
 
 const supportEmail = 'support@krsi.com'
-
-const ticker = [
-  { name: 'Coffee', image: '/assets/coffee.png' },
-  { name: 'Turmeric', image: '/assets/turmeric.png' },
-  { name: 'Cardamom', image: '/assets/cardamom.jpg' },
-  { name: 'Arecanut', image: '/assets/arecanut.jpg' },
-]
-
-const trending = [
-  { name: 'Coffee', image: '/assets/coffee.png' },
-  { name: 'Turmeric', image: '/assets/turmeric.png' },
-  { name: 'Cardamom', image: '/assets/cardamom.jpg' },
-  { name: 'Arecanut', image: '/assets/arecanut.jpg' },
-  { name: 'Black Pepper', image: '/assets/pepper.jpg' },
-]
-
-const filters = ['All', 'Coffee', 'Black Pepper', 'Turmeric', 'Cardamom', 'Arecanut']
-
-const listings = [
-  ['Coffee', '/assets/coffee.png'],
-  ['Turmeric', '/assets/turmeric.png'],
-  ['Cardamum', '/assets/cardamom.jpg'],
-  ['Arecanut', '/assets/arecanut.jpg'],
-  ['Black Pepper', '/assets/pepper.jpg'],
-  ['Clove', '/assets/clove.png'],
-  ['Cuminum', '/assets/cumin.jpg'],
-]
 
 const trusts = [
   { title: 'Quality Verified', copy: 'Third party inspection', icon: 'quality-verified' },
@@ -67,6 +43,18 @@ function icon(name: string) {
   return `/assets/icons/${name}.png`
 }
 
+/** "₹2.39 Cr" style total for the headline tile. */
+function crore(value: number) {
+  return value >= 1e7 ? `₹${(value / 1e7).toFixed(2)} Cr` : money(value)
+}
+
+function ago(iso: string) {
+  const hours = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 36e5))
+  return hours < 1 ? 'just now' : hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`
+}
+
+const change = (value: number) => (value < 0 ? 'text-[#D92D20]' : 'text-[#1F8955]')
+
 function CommodityThumb({ src }: { src: string }) {
   return <img src={src} alt="" className="size-[28px] rounded-[6px] object-cover" />
 }
@@ -85,6 +73,26 @@ export function DesktopPage() {
   useEffect(() => {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' })
   }, [hash])
+
+  // all public endpoints, so the page works signed out
+  const stats = useApi(() => api.warehouses.stats(), [])
+  // shortcut: totals cover the newest 100 lots only; add a marketplace summary endpoint when there are more
+  const lots = useApi(() => api.marketplace.search({ sort: 'LATEST', size: 100 }), [])
+  const prices = useApi(() => api.market.prices(undefined, 20), [])
+  const gainers = useApi(() => api.market.insights('GAINERS', 7), [])
+  const [filter, setFilter] = useState('All')
+
+  const listed = lots.data?.items ?? []
+  const movers = [...(prices.data ?? [])].sort((x, y) => y.changePct - x.changePct)
+  const filters = ['All', ...movers.slice(0, 5).map((price) => price.commodity)]
+  const trending = movers.filter((price) => filter === 'All' || price.commodity === filter).slice(0, 5)
+  const lotsOf = (commodity: string) => listed.filter((lot) => lot.commodity === commodity)
+  const tiles = [
+    [crore(listed.reduce((sum, lot) => sum + lot.totalValue, 0)), 'Total marketplace value'],
+    [mt(listed.reduce((sum, lot) => sum + lot.quantityMt, 0)), 'Available Inventory'],
+    [String(lots.data?.totalItems ?? '-'), 'Active lots'],
+    [String(stats.data?.verifiedWarehouses ?? '-'), 'Verified Warehouses'],
+  ]
 
   return (
     <div className="min-h-screen bg-[#F4F6F5] pb-16">
@@ -125,12 +133,7 @@ export function DesktopPage() {
 
       <div className="px-[70px]">
         <section className="relative z-10 -mt-[48px] grid h-[100px] grid-cols-4 items-center rounded-[12px] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.08)]">
-          {[
-            ['$ 428 Cr', 'Total marketplace value'],
-            ['126,450 MT', 'Available Inventory'],
-            ['6,450', 'Active lots'],
-            ['6,450', 'Verified Warehouses'],
-          ].map(([value, label]) => (
+          {tiles.map(([value, label]) => (
             <div key={label} className="px-8">
               <p className="text-[32px] leading-none font-bold">{value}</p>
               <p className="mt-1 text-[15px] text-[#667085]">{label}</p>
@@ -139,14 +142,14 @@ export function DesktopPage() {
         </section>
 
         <section className="mt-5 grid h-20 grid-cols-4 overflow-hidden rounded-[12px] bg-white">
-          {ticker.map((item) => (
-            <div key={item.name} className="flex items-center gap-[15px] px-[15px]">
-              <img src={item.image} alt="" className="size-[50px] rounded-[8px] object-cover" />
+          {movers.slice(0, 4).map((price) => (
+            <div key={price.commodity} className="flex items-center gap-[15px] px-[15px]">
+              <img src={price.imageUrl} alt="" className="size-[50px] rounded-[8px] object-cover" />
               <div className="leading-none">
-                <p className="text-[15px] leading-[17px] font-semibold">{item.name}</p>
-                <p className="mt-1.5 text-[13px] leading-[17px] text-[#667085]">$650/QTL</p>
+                <p className="text-[15px] leading-[17px] font-semibold">{price.commodity}</p>
+                <p className="mt-1.5 text-[13px] leading-[17px] text-[#667085]">{perKg(price.pricePerKg)}</p>
               </div>
-              <span className="ml-auto text-[13px] leading-[17px] font-medium text-[#1F8955]">+1.8%</span>
+              <span className={`ml-auto text-[13px] leading-[17px] font-medium ${change(price.changePct)}`}>{pct(price.changePct)}</span>
             </div>
           ))}
         </section>
@@ -159,28 +162,37 @@ export function DesktopPage() {
             </Link>
           </div>
           <div className="mt-2.5 flex gap-2.5">
-            {filters.map((filter, index) => (
+            {filters.map((item) => (
               <button
-                key={filter}
+                key={item}
                 type="button"
-                className={`h-9 rounded-full px-5 text-[14px] leading-[19px] ${index === 0 ? `${darkGreen} text-white` : 'bg-[#EAECF0] text-[#98A2B3]'}`}
+                aria-pressed={filter === item}
+                onClick={() => setFilter(item)}
+                className={`h-9 rounded-full px-5 text-[14px] leading-[19px] ${filter === item ? `${darkGreen} text-white` : 'bg-[#EAECF0] text-[#98A2B3]'}`}
               >
-                {filter}
+                {item}
               </button>
             ))}
           </div>
           <div className="mt-5 grid grid-cols-5 gap-[19px]">
-            {trending.map((item) => (
-              <article key={item.name} className="overflow-hidden rounded-[12px] bg-white shadow-[0_6px_16px_rgba(16,24,40,0.05)]">
-                <img src={item.image} alt="" className="h-[159px] w-full object-cover" />
-                <div className="px-4 py-3">
-                  <p className="text-[16px] font-semibold">{item.name}</p>
-                  <p className="mt-1 text-[13px] text-[#667085]">$ 359/QTL</p>
-                  <p className="text-[13px] text-[#667085]">18450 MT available</p>
-                  <p className="text-[13px] text-[#667085]">164 active lots</p>
-                </div>
-              </article>
-            ))}
+            {trending.map((price) => {
+              const open = lotsOf(price.commodity)
+              return (
+                <Link
+                  key={price.commodity}
+                  to={`/marketplace?q=${encodeURIComponent(price.commodity)}`}
+                  className="overflow-hidden rounded-[12px] bg-white shadow-[0_6px_16px_rgba(16,24,40,0.05)]"
+                >
+                  <img src={price.imageUrl} alt="" className="h-[159px] w-full object-cover" />
+                  <div className="px-4 py-3">
+                    <p className="text-[16px] font-semibold">{price.commodity}</p>
+                    <p className="mt-1 text-[13px] text-[#667085]">{perKg(price.pricePerKg)}</p>
+                    <p className="text-[13px] text-[#667085]">{mt(open.reduce((sum, lot) => sum + lot.quantityMt, 0))} available</p>
+                    <p className="text-[13px] text-[#667085]">{open.length} active lots</p>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </section>
 
@@ -192,22 +204,27 @@ export function DesktopPage() {
               <span>Location</span>
               <span>Quantity</span>
               <span>Grade</span>
-              <span>Price($/QTL)</span>
+              <span>Price (₹/MT)</span>
               <span>Listed</span>
             </div>
             <div className="mt-2">
-              {listings.map(([name, image]) => (
-                <div key={name} className="grid h-[50px] grid-cols-[1.4fr_1.2fr_0.8fr_0.55fr_0.9fr_0.7fr] items-center px-4 text-[14px] leading-[17px]">
+              {lots.data && listed.length === 0 ? <p className="px-4 py-6 text-[14px] text-[#667085]">No lots are listed yet.</p> : null}
+              {listed.slice(0, 7).map((lot) => (
+                <Link
+                  key={lot.id}
+                  to={`/marketplace?q=${encodeURIComponent(lot.commodity)}`}
+                  className="grid h-[50px] grid-cols-[1.4fr_1.2fr_0.8fr_0.55fr_0.9fr_0.7fr] items-center rounded-[8px] px-4 text-[14px] leading-[17px] hover:bg-[#F9FAFB]"
+                >
                   <span className="flex items-center gap-2 font-medium">
-                    <CommodityThumb src={image} />
-                    {name}
+                    <CommodityThumb src={lot.imageUrl} />
+                    {lot.commodity}
                   </span>
-                  <span>Chikmagalur,KA</span>
-                  <span>650 MT</span>
-                  <span>A</span>
-                  <span>650</span>
-                  <span className="text-[#667085]">2h ago</span>
-                </div>
+                  <span>{lot.region}</span>
+                  <span>{mt(lot.quantityMt)}</span>
+                  <span>{lot.grade}</span>
+                  <span>{perMt(lot.askingPricePerMt).replace('/MT', '')}</span>
+                  <span className="text-[#667085]">{ago(lot.createdAt)}</span>
+                </Link>
               ))}
             </div>
           </article>
@@ -215,14 +232,16 @@ export function DesktopPage() {
             <h2 className="px-2 text-[24px] font-bold">Market Insights</h2>
             <div className={`mt-3 inline-flex h-9 items-center rounded-full ${darkGreen} px-5 text-[14px] leading-[19px] text-white`}>Commodities</div>
             <div className="mt-2">
-              {listings.map(([name, image]) => (
-                <div key={name} className="grid h-[50px] grid-cols-[1.2fr_1.2fr_auto] items-center px-2 text-[14px] leading-[17px]">
-                  <span className="flex items-center gap-2 font-medium">
-                    <CommodityThumb src={image} />
-                    {name}
+              {gainers.data?.map((price) => (
+                <div key={price.commodity} className="grid h-[50px] grid-cols-[1.2fr_1.2fr_auto] items-center gap-2 px-2 text-[14px] leading-[17px]">
+                  <span className="flex min-w-0 items-center gap-2 font-medium">
+                    <CommodityThumb src={price.imageUrl} />
+                    <span className="truncate">{price.commodity}</span>
                   </span>
-                  <span className="text-[#667085]">Chikmagalur,KA</span>
-                  <span>650 MT</span>
+                  <span className="truncate text-[#667085]">{price.bestMarket}</span>
+                  <span>
+                    {perKg(price.pricePerKg)} <span className={change(price.changePct)}>{pct(price.changePct)}</span>
+                  </span>
                 </div>
               ))}
             </div>

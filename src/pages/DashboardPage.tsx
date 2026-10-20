@@ -8,6 +8,7 @@ import { AlertIcon, CloudMiniIcon, DocIcon, GrainIcon, PinIcon, RepayIcon, Trend
 import { ErrorBanner } from '../components/ui'
 import { money, pct, perKg, statValue } from '../lib/format'
 import { useApi } from '../lib/useApi'
+import { fetchWeather, storageAdvice } from '../lib/weather'
 
 const activityIcons: Record<string, typeof GrainIcon> = {
   storedProduce: GrainIcon,
@@ -97,6 +98,13 @@ export function DashboardPage() {
   const [tab, setTab] = useState<InsightType>('GAINERS')
   const insights = useApi(() => api.market.insights(tab), [tab])
   const currency = data?.currency ?? 'INR'
+  const lat = user?.latitude
+  const lng = user?.longitude
+  const weather = useApi(() => (lat != null && lng != null ? fetchWeather(lat, lng) : Promise.resolve(null)), [lat, lng])
+  const advice = weather.data ? storageAdvice(weather.data) : null
+  const place = user?.district ?? data?.location ?? 'your area'
+  const [hour] = useState(() => new Date().getHours())
+  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening'
   const visibleActions = actions.filter((action) => user && action.roles.includes(user.role))
 
   return (
@@ -107,7 +115,7 @@ export function DashboardPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h1 className="text-[24px] leading-[29px] font-bold">
-                    Good Morning{data ? `, ${data.displayName}` : ''}
+                    {greeting}{data ? `, ${data.displayName}` : ''}
                   </h1>
                   <p className="mt-[10px] text-[14px] leading-[19px] text-[#667085]">
                     Here&apos;s what&apos;s happening with your farm today.
@@ -131,30 +139,53 @@ export function DashboardPage() {
                 <article className="flex h-[200px] flex-col rounded-[16px] bg-white px-[15px] pt-[15px] pb-4">
                   <p className="flex items-center gap-2 text-[15px] leading-[19px] font-semibold">
                     <CloudMiniIcon className="size-[15px] text-[#7CC4F0]" />
-                    Weather In Delhi
+                    Weather In {place}
                   </p>
-                  <div className="mt-5 flex items-center gap-3">
-                    <img src="/assets/cloud.png" alt="" className="size-[50px] object-contain" />
-                    <div>
-                      <p className="text-[28px] leading-none font-bold">23°C</p>
-                      <p className="mt-2 text-[13px] leading-[15px] text-[#667085]">Partly Cloud</p>
-                    </div>
-                  </div>
-                  <p className="mt-auto text-[13px] leading-[15px] text-[#667085]">
-                    Humidity 78% <span className="mx-1 text-[#D0D5DD]">|</span> Wind 8 Km/h
-                  </p>
+                  {weather.data ? (
+                    <>
+                      <div className="mt-5 flex items-center gap-3">
+                        <img src="/assets/cloud.png" alt="" className="size-[50px] object-contain" />
+                        <div>
+                          <p className="text-[28px] leading-none font-bold">{weather.data.temperature}°C</p>
+                          <p className="mt-2 text-[13px] leading-[15px] text-[#667085]">{weather.data.label}</p>
+                        </div>
+                      </div>
+                      <p className="mt-auto text-[13px] leading-[15px] text-[#667085]">
+                        Humidity {weather.data.humidity}% <span className="mx-1 text-[#D0D5DD]">|</span> Wind {weather.data.windKmh} Km/h
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-5 text-[13px] leading-[18px] text-[#667085]">
+                      {weather.loading ? 'Loading weather…' : weather.error ? weather.error.message : (
+                        <>
+                          Add your farm location in{' '}
+                          <Link to="/settings" className="font-medium text-[#1F8955]">
+                            Settings
+                          </Link>{' '}
+                          to see local weather.
+                        </>
+                      )}
+                    </p>
+                  )}
                 </article>
                 <article className="flex h-[200px] flex-col rounded-[16px] bg-[#FFF4EC] px-[15px] pt-[15px] pb-4">
                   <p className="flex items-center gap-2 text-[15px] leading-[19px] font-semibold text-[#F97316]">
                     <AlertIcon className="size-[15px]" />
-                    Weather Alert
+                    {advice?.title ?? 'Weather Alert'}
                   </p>
                   <p className="mt-4 text-[14px] leading-5 text-[#667085]">
-                    Light rain expected in your area tomorrow. Consider covering stored produce.
+                    {advice?.text ?? 'Storage advice appears here once your local forecast loads.'}
                   </p>
-                  <button type="button" className="mt-auto flex items-center gap-2 text-[13px] leading-[15px] font-medium text-[#1F8955]">
-                    View Details <span aria-hidden="true">→</span>
-                  </button>
+                  {lat != null && lng != null ? (
+                    <a
+                      href={`https://www.windy.com/${lat}/${lng}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-auto flex items-center gap-2 text-[13px] leading-[15px] font-medium text-[#1F8955]"
+                    >
+                      View Details <span aria-hidden="true">→</span>
+                    </a>
+                  ) : null}
                 </article>
                 <article className="relative h-[200px] overflow-hidden rounded-[16px]">
                   <img src="/assets/farmer-field.png" alt="" className="absolute inset-0 h-full w-full object-cover" />

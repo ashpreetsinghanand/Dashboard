@@ -12,7 +12,7 @@ const languages = [
   { label: 'Gujarati-ગુજરાતી', glyph: 'અ', bg: '#e5dcda', color: '#6a4141' },
   { label: 'Kannada-ಕನ್ನಡ', glyph: 'ಎ', bg: '#e8d1fd', color: '#8d21e7' },
   { label: 'Malayalam-മലയാളം', glyph: 'എ', bg: '#fbebe3', color: '#e29276' },
-  { label: 'Punjabi-ਪੰਜਾਬੀ', glyph: 'Punjabi', bg: '#ffd3d5', color: '#1e1e1e', labelColor: '#8d21e7' },
+  { label: 'Punjabi-ਪੰਜਾਬੀ', glyph: 'ੳ', bg: '#ffd3d5', color: '#d6456a' },
 ]
 
 function LanguageCard({
@@ -31,14 +31,12 @@ function LanguageCard({
     >
       <span
         className="absolute top-[10px] left-[10px] text-[12px] font-medium"
-        style={{ color: language.labelColor ?? language.color, fontFamily: 'Poppins, sans-serif' }}
+        style={{ color: language.color, fontFamily: 'Poppins, sans-serif' }}
       >
         {language.label}
       </span>
       <span
-        className={`absolute inset-x-0 font-medium ${
-          language.glyph === 'Punjabi' ? 'top-[53px] text-[16px]' : 'top-[18px] text-[60px] leading-none'
-        }`}
+        className="absolute inset-x-0 top-[34px] bottom-2 grid place-items-center text-[56px] leading-none font-medium"
         style={{ fontFamily: 'Poppins, sans-serif' }}
       >
         {language.glyph}

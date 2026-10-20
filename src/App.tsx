@@ -14,6 +14,8 @@ import { MarketplacePage } from './pages/MarketplacePage'
 import { OtpPage } from './pages/OtpPage'
 import { PasswordPage } from './pages/PasswordPage'
 import { PhonePage } from './pages/PhonePage'
+import { PriceAlertsPage } from './pages/PriceAlertsPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { StorageInvoicePage } from './pages/StorageInvoicePage'
 import { TradePage } from './pages/TradePage'
 import { WarehouseDetailPage } from './pages/WarehouseDetailPage'
@@ -50,6 +52,8 @@ export default function App() {
       <Route path="/trade/bid" element={p(<TradePage page="bid" />, ['MERCHANT'])} />
       <Route path="/trade/history" element={p(<TradePage page="history" />, TRADERS)} />
       <Route path="/trade/loans" element={p(<LoansPage />, TRADERS)} />
+      <Route path="/alerts" element={p(<PriceAlertsPage />)} />
+      <Route path="/settings" element={p(<SettingsPage />)} />
       <Route path="/owner/warehouses" element={p(<MyWarehousesPage />, ['WAREHOUSE_OWNER'])} />
       <Route path="/owner/receipts" element={p(<OwnerReceiptsPage />, ['WAREHOUSE_OWNER'])} />
       <Route path="/audit/inspections" element={p(<InspectionsPage />, ['AUDITOR'])} />

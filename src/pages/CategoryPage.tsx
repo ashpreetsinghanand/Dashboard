@@ -66,7 +66,8 @@ export function CategoryPage() {
             <img
               src={category.image}
               alt=""
-              className="size-[150px] rounded-full object-cover"
+              // anchored near the top so portrait photos keep the face in the circle
+              className="size-[150px] rounded-full object-cover object-[center_15%]"
             />
             <span
               className="mt-5 w-full text-[16px] leading-[19px] font-semibold whitespace-nowrap"
