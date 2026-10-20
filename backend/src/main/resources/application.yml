@@ -1,0 +1,69 @@
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${SERVER_PORT:8080}
+spring:
+  application:
+    name: krsi-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5432/payment_analyzer}
+    username: ${DB_USER:analyzer}
+    password: ${DB_PASSWORD:local_dev_only}
+  sql:
+    init:
+      mode: always
+  mvc:
+    format:
+      # Query parameters such as ?date=2026-10-20 use ISO dates (the UI converts from dd/MM/yyyy).
+      date: iso
+app:
+  auth:
+    # HS256 signing key; must be at least 32 characters. Always override in any shared environment.
+    jwt-secret: ${JWT_SECRET:local-dev-only-change-me-krsi-jwt-secret-0123456789}
+    issuer: ${JWT_ISSUER:krsi-backend}
+    token-ttl: ${JWT_TTL:12h}
+    # Auditors are normally created by the platform team (see the demo seeder). Allow self sign-up only for demos.
+    allow-auditor-signup: ${ALLOW_AUDITOR_SIGNUP:false}
+  otp:
+    length: 6
+    ttl: ${OTP_TTL:5m}
+    resend-after: ${OTP_RESEND_AFTER:60s}
+    max-attempts: 5
+    max-sends-per-hour: ${OTP_MAX_SENDS_PER_HOUR:5}
+    # Local development: return the OTP in the /auth/otp/send response so the UI can be tested without SMS.
+    expose-in-response: ${OTP_EXPOSE_IN_RESPONSE:true}
+    verification-ttl: 15m
+  business:
+    currency: ${CURRENCY:INR}
+    receipt-validity-days: 180
+    invoice-due-days: 15
+    storage-period-days: 30
+    # Demo loan rule: up to this share of the receipt's market value, sanctioned instantly by the platform.
+    loan-to-value: 0.70
+    loan-interest-rate-pct: 9.0
+  ledger:
+    chain-id: ${LEDGER_CHAIN_ID:krsi-ledger-local}
+  demo:
+    # Creates demo users, warehouses, prices and a complete storage-to-trade flow when the database is empty.
+    seed: ${DEMO_SEED:true}
+    password: ${DEMO_PASSWORD:Krsi@1234}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+    try-it-out-enabled: true
+    persist-authorization: true
+  paths-to-match: /api/**
+logging:
+  pattern:
+    correlation: "[%X{traceId:-}] "
+  level:
+    root: INFO
+    com.accenture.krsi: ${LOG_LEVEL:INFO}
