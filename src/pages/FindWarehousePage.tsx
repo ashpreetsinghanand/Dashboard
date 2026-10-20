@@ -1,23 +1,23 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/endpoints'
-import type { InsightType, WarehouseSort, WarehouseSummary } from '../api/types'
+import type { WarehouseSort, WarehouseSummary } from '../api/types'
 import { DashboardShell } from '../components/DashboardShell'
+import { MarketRail } from '../components/MarketRail'
 import { BoxIcon, PinIcon, ShieldIcon, WarehouseIcon } from '../components/Icons'
 import { Pager } from '../components/store/Pager'
 import { ErrorBanner } from '../components/ui'
-import { money, mt, pct } from '../lib/format'
+import { mt } from '../lib/format'
 import { useApi } from '../lib/useApi'
 
-const distances = ['Within 100 Km', 'Within 20 Km', 'Within 30 Km']
+const distances = ['Any distance', 'Within 20 Km', 'Within 30 Km', 'Within 100 Km']
 const radii: Record<string, number> = { 'Within 20 Km': 20, 'Within 30 Km': 30, 'Within 100 Km': 100 }
 const capacities = ['Any Capacity', 'Up to 3,000 MT', '3,500 MT and above']
 const sorts = ['Nearest', 'Capacity', 'Name']
 const sortParam: Record<string, WarehouseSort> = { Nearest: 'NEAREST', Capacity: 'CAPACITY', Name: 'NAME' }
-const insightTabs: [InsightType, string][] = [['GAINERS', 'Top Gainers'], ['LOSERS', 'Top Loser'], ['WATCHLIST', 'Watchlist']]
 
 export function FindWarehousePage() {
-  const [place, setPlace] = useState('Lalitpur, Uttar Pradesh')
+  const [place, setPlace] = useState('')
   const [appliedPlace, setAppliedPlace] = useState('')
   const [distance, setDistance] = useState(distances[0])
   const [commodity, setCommodity] = useState('All Commodities')
@@ -27,7 +27,6 @@ export function FindWarehousePage() {
   const [more, setMore] = useState(false)
   const [page, setPage] = useState(0)
   const [origin, setOrigin] = useState<{ lat: number; lng: number }>()
-  const [insight, setInsight] = useState<InsightType>('GAINERS')
 
   // Distance needs a search origin; without one the server ignores radiusKm and the card shows the district.
   useEffect(() => {
@@ -40,7 +39,6 @@ export function FindWarehousePage() {
   const reference = useApi(() => api.reference.commodities(), [])
   const commodities = ['All Commodities', ...(reference.data?.map((item) => item.name) ?? [])]
   const stats = useApi(() => api.warehouses.stats(), [])
-  const insights = useApi(() => api.market.insights(insight), [insight])
   const results = useApi(
     () =>
       api.warehouses.search({
@@ -84,11 +82,10 @@ export function FindWarehousePage() {
         </div>
 
         <section className="relative mt-3 h-[150px] overflow-hidden rounded-[12px]">
-          <img src="/assets/warehouse-card.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0E4F38]/80 via-[#0E4F38]/55 to-[#0E4F38]/20" />
-          <div className="relative px-[15px] pt-[15px] text-white">
-            <h1 className="text-[24px] leading-[29px] font-bold">Find A Warehouse</h1>
-            <p className="mt-[10px] max-w-[641px] text-[14px] leading-[19px]">
+          <img src="/assets/silo-banner.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="relative px-[15px] pt-[15px]">
+            <h1 className="text-[24px] leading-[29px] font-bold text-[#1A1A1A]">Find A Warehouse</h1>
+            <p className="mt-[10px] max-w-[641px] text-[14px] leading-[19px] text-[#667085]">
               Store your produce safely, get warehouse receipts. access finance and better prices.
             </p>
           </div>
@@ -108,7 +105,8 @@ export function FindWarehousePage() {
               value={place}
               onChange={(event) => setPlace(event.target.value)}
               aria-label="Location"
-              className="w-full bg-transparent text-[13px] leading-4 text-[#1E1E1E] outline-none"
+              placeholder="City, district or warehouse, e.g. Lalitpur"
+              className="w-full bg-transparent text-[13px] leading-4 text-[#1E1E1E] outline-none placeholder:text-[#98A2B3]"
             />
           </label>
           <FilterSelect label="Distance" value={distance} options={distances} onChange={filter(setDistance)} />
@@ -146,7 +144,9 @@ export function FindWarehousePage() {
           </div>
         )}
 
-        <div className="mt-[15px] grid w-[880px] grid-cols-4 gap-5">
+        <div className="mt-[15px] grid grid-cols-[minmax(0,1fr)_300px] items-start gap-5">
+          <section className="min-w-0">
+            <div className="mb-4 grid grid-cols-4 gap-5">
           {tiles.map((stat) => (
             <article key={stat.label} className="flex h-[75px] items-center gap-3 rounded-[12px] bg-white px-[15px]">
               <span className="grid size-[30px] shrink-0 place-items-center rounded-full bg-[#E7F6EE] text-[#1F8955]">
@@ -158,10 +158,7 @@ export function FindWarehousePage() {
               </div>
             </article>
           ))}
-        </div>
-
-        <div className="mt-4 grid grid-cols-[880px_300px] gap-5">
-          <section>
+            </div>
             <div className="flex h-[30px] items-center justify-between">
               <h2 className="text-[24px] leading-[29px] font-bold">Available Warehouses</h2>
               <div className="flex items-center gap-[15px]">
@@ -214,42 +211,7 @@ export function FindWarehousePage() {
             )}
           </section>
 
-          <aside className="grid content-start gap-4">
-            <article className="rounded-[16px] bg-white px-[15px] pt-[15px] pb-4">
-              <h2 className="text-[20px] leading-[29px] font-bold">Market Insights</h2>
-              <div className="mt-3 flex gap-2 text-[12px]">
-                {insightTabs.map(([type, label]) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setInsight(type)}
-                    className={`rounded-full px-3 py-1 ${insight === type ? 'bg-[#1F8955] text-white' : 'bg-[#F2F4F7] text-[#667085]'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3 grid gap-2.5">
-                {insights.error ? <ErrorBanner error={insights.error} onRetry={insights.reload} /> : null}
-                {insights.data?.length === 0 ? <p className="text-[13px] text-[#667085]">Nothing to show yet.</p> : null}
-                {insights.data?.map((item) => (
-                  <div key={item.commodity} className="flex items-center gap-2 text-[13px]">
-                    <img src={item.imageUrl} alt="" className="size-[30px] rounded-[6px] object-cover" />
-                    <span className="flex-1">{item.commodity}</span>
-                    <span>{money(item.pricePerKg)}</span>
-                    <span className={`w-12 text-right ${item.changePct < 0 ? 'text-[#D92D20]' : 'text-[#1F8955]'}`}>{pct(item.changePct)}</span>
-                  </div>
-                ))}
-              </div>
-            </article>
-            <article className="relative h-[217px] overflow-hidden rounded-[16px]">
-              <img src="/assets/warehouse-card.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
-              <p className="relative max-w-[205px] px-[15px] pt-[23px] text-[18px] leading-6 font-semibold text-white">
-                Verified Warehouses. Trusted Financing.
-              </p>
-            </article>
-          </aside>
+          <MarketRail />
         </div>
       </main>
     </DashboardShell>

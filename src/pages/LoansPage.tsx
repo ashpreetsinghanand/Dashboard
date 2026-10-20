@@ -10,7 +10,7 @@ import { money, mt, statusLabel, toUiDate } from '../lib/format'
 import { useAction, useApi } from '../lib/useApi'
 
 const statusChips: Record<string, LoanStatus | undefined> = { 'All Loans': undefined, Active: 'ACTIVE', Closed: 'CLOSED' }
-const cols = 'grid-cols-[140px_130px_120px_120px_70px_95px_85px_105px]'
+const cols = 'grid-cols-[140fr_130fr_120fr_120fr_70fr_95fr_85fr_105fr]'
 
 export function LoansPage() {
   const [chip, setChip] = useState('All Loans')

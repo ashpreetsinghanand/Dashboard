@@ -17,7 +17,7 @@ const statusParam: Record<string, BookingStatus> = {
   Cancelled: 'CANCELLED',
   Stored: 'DEPOSITED',
 }
-const bookingCols = 'grid-cols-[140px_138px_123px_155px_123px_111px_75px]'
+const bookingCols = 'grid-cols-[140fr_138fr_123fr_155fr_123fr_111fr_75fr]'
 
 type Dialog =
   | { kind: 'accept' | 'reject'; booking: Booking }
@@ -210,7 +210,7 @@ export function BookingRequestPage() {
                     <span className="text-[11px] text-[#98A2B3]">{row.grade}</span>
                   </span>
                 </span>
-                <span className="w-16 leading-[15px]">{row.warehouseName}</span>
+                <span className="pr-2 leading-[15px]">{row.warehouseName}</span>
                 <span>{row.warehouseLocation}</span>
                 <span>{toUiDate(row.createdAt)}</span>
                 <span>{qtl(row.quantityQtl)}</span>

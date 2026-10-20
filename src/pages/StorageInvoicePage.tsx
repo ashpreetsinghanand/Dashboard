@@ -8,7 +8,7 @@ import { ErrorBanner, LedgerTimeline, Modal } from '../components/ui'
 import { money, mt, shortHash, statusLabel, toUiDate } from '../lib/format'
 import { useAction, useApi } from '../lib/useApi'
 
-const invoiceCols = 'grid-cols-[86px_113px_98px_119px_82px_110px_71px_186px]'
+const invoiceCols = 'grid-cols-[86fr_113fr_98fr_119fr_82fr_110fr_71fr_186fr]'
 
 const statusChips = ['All', 'Paid', 'Pending', 'Overdue', 'Cancelled']
 
@@ -222,7 +222,7 @@ export function StorageInvoicePage() {
                 </span>
                 <span className="mt-0.5 inline-block rounded-[2px] bg-[#F2F4F7] px-1 text-[8px] leading-[10px] text-[#98A2B3]">{row.invoiceNo}</span>
               </span>
-              <span className="w-16 leading-[15px]">{row.warehouseName}</span>
+              <span className="pr-2 leading-[15px]">{row.warehouseName}</span>
               <span className="pr-2 leading-[15px]">
                 {toUiDate(row.periodFrom)} – {toUiDate(row.periodTo)}
               </span>

@@ -6,8 +6,8 @@ import { ErrorBanner, FieldError, Modal } from '../../components/ui'
 import { mt, shortHash, toUiDate } from '../../lib/format'
 import { useAction, useApi } from '../../lib/useApi'
 
-const dueCols = 'grid-cols-[250px_150px_170px_110px_110px]'
-const recentCols = 'grid-cols-[120px_180px_150px_70px_200px_130px]'
+const dueCols = 'grid-cols-[250fr_150fr_170fr_110fr_110fr]'
+const recentCols = 'grid-cols-[120fr_180fr_150fr_70fr_200fr_130fr]'
 const input = 'h-9 w-full rounded-[8px] border border-[#E6E8EC] bg-white px-2.5 text-[13px] outline-none focus:border-[#1F8955]'
 
 const results: Record<AuditResult, { label: string; tone: string }> = {

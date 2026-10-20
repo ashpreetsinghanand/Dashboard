@@ -6,7 +6,7 @@ import { ErrorBanner, LedgerTimeline, Modal } from '../../components/ui'
 import { money, mt, statusLabel, toUiDate } from '../../lib/format'
 import { useAction, useApi } from '../../lib/useApi'
 
-const cols = 'grid-cols-[190px_150px_90px_150px_110px_150px]'
+const cols = 'grid-cols-[190fr_150fr_90fr_150fr_110fr_150fr]'
 // The server bills only receipts still in store (InvoiceService.issueNextPeriod)
 const billable = ['ACTIVE', 'LISTED', 'PLEDGED']
 

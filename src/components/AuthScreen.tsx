@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { PublicHeader } from './PublicHeader'
 import { Stepper } from './Stepper'
 
 type AuthScreenProps = {
@@ -11,9 +12,8 @@ type AuthScreenProps = {
 export function AuthScreen({ filled, title, subtitle, children }: AuthScreenProps) {
   return (
     <div className="min-h-screen bg-[#f6f9fc]">
-      <div className="mx-auto min-h-screen w-[1440px] bg-[#f6f9fc]">
-        <div className="h-[60px] bg-[#fffeff]" />
-        <div className="flex flex-col items-center">
+      <PublicHeader active="signup" />
+      <div className="flex flex-col items-center pb-16">
           <div className="mt-[100px]">
             <Stepper filled={filled} />
           </div>
@@ -24,7 +24,6 @@ export function AuthScreen({ filled, title, subtitle, children }: AuthScreenProp
             {subtitle}
           </p>
           {children}
-        </div>
       </div>
     </div>
   )

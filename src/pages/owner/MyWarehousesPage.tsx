@@ -6,7 +6,7 @@ import { ErrorBanner, Modal } from '../../components/ui'
 import { money, mt } from '../../lib/format'
 import { useApi } from '../../lib/useApi'
 
-const cols = 'grid-cols-[230px_130px_150px_120px_80px_90px_60px]'
+const cols = 'grid-cols-[230fr_130fr_150fr_120fr_80fr_90fr_60fr]'
 
 export function MyWarehousesPage() {
   const { data, loading, error, reload } = useApi(() => api.warehouses.mine(), [])

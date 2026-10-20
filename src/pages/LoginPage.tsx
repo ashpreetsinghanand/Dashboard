@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../api/endpoints'
 import type { OtpSent } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
+import { PublicHeader } from '../components/PublicHeader'
 import { FieldError } from '../components/ui'
 import { useAction } from '../lib/useApi'
 import { OtpFields } from './OtpPage'
@@ -24,7 +25,7 @@ const EMPTY_OTP = ['', '', '', '', '', '']
 type Step = 'signin' | 'phone' | 'otp' | 'password'
 
 const copy: Record<Step, { title: string; subtitle: string; button: string }> = {
-  signin: { title: 'Sign In', subtitle: 'Enter your phone number and password to continue with KRSI.', button: 'Sign In' },
+  signin: { title: 'Login', subtitle: 'Welcome back! Please enter your details to continue.', button: 'Login' },
   phone: { title: 'Forgot Password', subtitle: 'Enter your registered phone number and we will send you a code.', button: 'Send Code' },
   otp: { title: 'Verify OTP', subtitle: 'Enter the code sent to your phone to reset your password.', button: 'Confirm' },
   password: { title: 'Reset Password', subtitle: 'Choose a new password for your KRSI account.', button: 'Reset Password' },
@@ -87,31 +88,11 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#f6f9fc]">
-      <div className="mx-auto min-h-screen w-[1440px] bg-[#f6f9fc]">
-        <header className="flex h-[60px] items-center justify-end gap-[45px] bg-white pr-[30px] text-[16px] leading-[19px] text-[#1E1E1E]">
-          <Link to="/store">Find Warehouse</Link>
-          <button type="button">About</button>
-          <button type="button">Contact Us</button>
-          <span className="font-semibold text-[#1F8955]">Sign In</span>
-          <Link
-            to="/signup"
-            className="grid h-10 w-[90px] place-items-center rounded-[6px] bg-[#1F8955] font-medium text-white"
-          >
-            Sign Up
-          </Link>
-        </header>
-
-        <div className="flex flex-col items-center">
-          <h1 className="mt-[170px] text-center text-[48px] leading-[58px] font-bold tracking-[-0.5px] text-black">
-            Powering Agriculture Markets
-          </h1>
-          <p className="mt-5 text-center text-[16px] leading-[19px] font-medium text-[#979797]">
-            Buy, sell and trade commodities with verified partners.
-          </p>
-
+      <PublicHeader active="signin" />
+      <div className="flex min-h-[calc(100vh-60px)] flex-col items-center justify-center py-10">
           <form
             onSubmit={submit}
-            className="mt-[30px] w-[350px] rounded-[16px] bg-white px-[15px] pt-[15px] pb-4 shadow-[0_10px_30px_rgba(16,24,40,0.06)]"
+            className="w-[350px] rounded-[16px] bg-white px-[15px] pt-[15px] pb-4 shadow-[0_10px_30px_rgba(16,24,40,0.06)]"
           >
             <h2 className="text-center text-[24px] leading-[29px] font-bold">{copy[step].title}</h2>
             <p className="mx-auto mt-3 w-[320px] text-center text-[14px] leading-[19px] text-[#9AA0A6]">
@@ -232,11 +213,10 @@ export function LoginPage() {
                 onClick={() => goTo('signin')}
                 className="mx-auto mt-6 block text-[14px] font-medium text-[#2F6BFF]"
               >
-                Back to Sign In
+                Back to Login
               </button>
             )}
           </form>
-        </div>
       </div>
     </div>
   )

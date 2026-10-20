@@ -23,10 +23,10 @@ import { useApi } from '../lib/useApi'
 
 const enwrCopy = 'Buy and sell verified eNWRs fom trsuted warehouses across India.'
 
-const enwrCols = 'grid-cols-[80px_82px_80px_62px_76px_62px_92px_100px_62px_86px_83px]'
-const deskCols = 'grid-cols-[93px_66px_91px_76px_85px_75px_98px_90px_106px_85px]'
-const bidCols = 'grid-cols-[93px_112px_114px_99px_140px_134px_87px_86px]'
-const historyCols = 'grid-cols-[100px_60px_120px_70px_115px_115px_110px_85px_90px]'
+const enwrCols = 'grid-cols-[80fr_82fr_80fr_62fr_76fr_62fr_92fr_100fr_62fr_86fr_83fr]'
+const deskCols = 'grid-cols-[93fr_66fr_91fr_76fr_85fr_75fr_98fr_90fr_106fr_85fr]'
+const bidCols = 'grid-cols-[93fr_112fr_114fr_99fr_140fr_134fr_87fr_86fr]'
+const historyCols = 'grid-cols-[100fr_60fr_120fr_70fr_115fr_115fr_110fr_85fr_90fr]'
 const listingChips: Record<string, ListingStatus | undefined> = {
   'All Listings': undefined,
   Active: 'ACTIVE',
@@ -115,7 +115,7 @@ function EnwrBoard() {
               <div key={row.id} className={`mt-2 grid h-[90px] ${enwrCols} items-center rounded-[12px] bg-white pl-[15px] text-[13px]`}>
                 <PhotoCell src={row.imageUrl} />
                 <DetailStack name={row.commodity} grade={row.grade} code={row.receiptNo} />
-                <span className="w-16 leading-[15px]">{row.warehouseName}</span>
+                <span className="pr-2 leading-[15px]">{row.warehouseName}</span>
                 <span>{mt(row.quantityMt)}</span>
                 <span>{toUiDate(row.storedOn)}</span>
                 <span>{row.daysRemaining} Days</span>
@@ -198,7 +198,7 @@ function ListingBoard() {
                 <div key={row.id} className={`mt-2 grid h-[90px] ${deskCols} items-center rounded-[12px] bg-white pl-[15px] text-[13px]`}>
                   <PhotoCell src={row.imageUrl} />
                   <DetailStack name={row.commodity} grade={row.grade} code={row.receiptNo} />
-                  <span className="w-16 leading-[15px]">{row.warehouseName}</span>
+                  <span className="pr-2 leading-[15px]">{row.warehouseName}</span>
                   <span className="leading-[15px]">
                     {mt(row.quantityMt)}
                     {row.quantityMt !== row.originalQuantityMt ? (
@@ -299,7 +299,7 @@ function BidBoard() {
               <div key={row.id} className={`mt-2 grid h-[90px] ${bidCols} items-center rounded-[12px] bg-white pl-[15px] text-[13px]`}>
                 <PhotoCell src={row.imageUrl} />
                 <DetailStack name={row.commodity} grade={row.grade} code={row.code} />
-                <span className="w-16 leading-[15px]">{row.warehouseName}</span>
+                <span className="pr-2 leading-[15px]">{row.warehouseName}</span>
                 <span>{mt(row.quantityMt)}</span>
                 <span>{perMt(row.pricePerMt)}</span>
                 <span>{money(row.totalValue)}</span>
@@ -422,9 +422,9 @@ function TradeDesk({
           </div>
         </section>
         {search ? <div className="mt-[15px]">{search}</div> : null}
-        <div className="mt-[10px] grid grid-cols-[880px_300px] items-start gap-5">
-          <div>{children}</div>
-          <aside className="grid gap-4">
+        <div className="mt-[10px] grid grid-cols-[minmax(0,1fr)_300px] items-start gap-5">
+          <div className="min-w-0">{children}</div>
+          <aside className="grid grid-cols-1 gap-4">
             <article className="rounded-[16px] bg-white px-4 pt-4 pb-4">
               <h2 className="text-[20px] leading-[29px] font-bold">Need Storage?</h2>
               <img src="/assets/warehouse.png" alt="" className="mt-2 size-[66px] rounded-[10px] object-cover" />

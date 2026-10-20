@@ -45,9 +45,9 @@ export function RequestLayout({
           </div>
         </section>
         {toolbar ? <div className="mt-[15px]">{toolbar}</div> : null}
-        <div className={`${toolbar ? 'mt-3' : 'mt-[15px]'} grid grid-cols-[880px_300px] items-start gap-5`}>
+        <div className={`${toolbar ? 'mt-3' : 'mt-[15px]'} grid grid-cols-[minmax(0,1fr)_300px] items-start gap-5`}>
           <div>{children}</div>
-          <aside className="grid gap-4">
+          <aside className="grid grid-cols-1 gap-4">
             <article className="rounded-[16px] bg-white px-4 pt-4 pb-4">
               <h2 className="text-[20px] leading-[29px] font-bold">Need Storage?</h2>
               <img src="/assets/warehouse.png" alt="" className="mt-2 size-[66px] rounded-[10px] object-cover" />

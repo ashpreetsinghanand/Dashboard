@@ -6,7 +6,7 @@ import { ErrorBanner, FieldError, Modal } from '../../components/ui'
 import { mt, statusLabel, toUiDate } from '../../lib/format'
 import { useAction, useApi } from '../../lib/useApi'
 
-const cols = 'grid-cols-[200px_170px_100px_110px_130px_110px]'
+const cols = 'grid-cols-[200fr_170fr_100fr_110fr_130fr_110fr]'
 const input = 'h-9 w-full rounded-[8px] border border-[#E6E8EC] bg-white px-2.5 text-[13px] outline-none focus:border-[#1F8955]'
 
 export function InspectionsPage() {

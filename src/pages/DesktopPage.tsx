@@ -1,6 +1,7 @@
-import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, type FormEvent } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { DiscordIcon, LinkedinIcon, TelegramIcon, XIcon } from '../components/Icons'
+import { PublicHeader } from '../components/PublicHeader'
 
 const supportEmail = 'support@krsi.com'
 
@@ -79,23 +80,15 @@ function draftMail(event: FormEvent<HTMLFormElement>, subject: string) {
 }
 
 export function DesktopPage() {
+  const { hash } = useLocation()
+  // router links like /#contact change the URL but do not scroll by themselves
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' })
+  }, [hash])
+
   return (
     <div className="min-h-screen bg-[#F4F6F5] pb-16">
-      <header className="flex h-[60px] items-center justify-between bg-white px-10">
-        <Link to="/" className="flex items-center gap-1.5">
-          <img src="/assets/krsi-mark.png" alt="" className="size-6" />
-          <span className="text-[22px] leading-none font-extrabold text-[#1E1E1E] italic">Krsi</span>
-        </Link>
-        <nav className="flex items-center gap-10 text-[15px] text-[#1E1E1E]">
-          <Link to="/store">Find Warehouse</Link>
-          <a href="#about">About</a>
-          <a href="#contact">Contact Us</a>
-          <Link to="/login">Sign In</Link>
-          <Link to="/signup" className={`grid h-10 w-[90px] place-items-center rounded-[6px] ${darkGreen} font-medium text-white`}>
-            Sign Up
-          </Link>
-        </nav>
-      </header>
+      <PublicHeader />
 
       <section className="relative h-[600px] overflow-hidden">
         <img src="/assets/hero.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />

@@ -8,7 +8,7 @@ import { useAction, useApi } from '../../lib/useApi'
 
 const PAGE = 50
 const entityTypes: LedgerEntityType[] = ['ENWR', 'BOOKING', 'WAREHOUSE', 'LISTING', 'BID', 'TRADE', 'INVOICE', 'LOAN', 'AUDIT', 'USER']
-const cols = 'grid-cols-[70px_220px_170px_150px_250px]'
+const cols = 'grid-cols-[70fr_220fr_170fr_150fr_250fr]'
 const field = 'h-[30px] rounded-[8px] border border-[#E6E8EC] bg-white px-2.5 text-[13px] outline-none'
 
 export function LedgerExplorerPage() {

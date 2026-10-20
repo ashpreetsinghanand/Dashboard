@@ -174,12 +174,10 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-[#F4F7FB]">
-      <div className="mx-auto min-h-screen w-[1440px] bg-[#F4F7FB]">
-        <AppTopBar />
-        <div className="flex min-h-[calc(100vh-60px)]">
-          {aside}
-          <div className="min-w-0 flex-1">{children}</div>
-        </div>
+      <AppTopBar />
+      <div className="flex min-h-[calc(100vh-60px)]">
+        {aside}
+        <div className="min-w-0 flex-1">{children}</div>
       </div>
     </div>
   )

@@ -87,7 +87,7 @@ export function MarketplacePage() {
   return (
     <DashboardShell section="marketplace">
       <main className="min-w-0 flex-1 px-5 pt-5 pb-5">
-        <div className="grid grid-cols-[880px_300px] items-start gap-5">
+        <div className="grid grid-cols-[minmax(0,1fr)_300px] items-start gap-5">
           <section>
             <h1 className="text-[24px] leading-[29px] font-bold">Global Marketplace For Agricultural commodities</h1>
             <p className="mt-[10px] text-[14px] leading-[19px] text-[#98A2B3]">
@@ -217,7 +217,7 @@ export function MarketplacePage() {
             )}
           </section>
 
-          <aside className="grid content-start gap-4">
+          <aside className="grid grid-cols-1 content-start gap-4">
             <article className="rounded-[16px] bg-white px-3.5 pt-3.5 pb-3">
               <h2 className="text-[18px] leading-6 font-bold">Market Insights</h2>
               <div className="mt-2 flex items-center gap-1 text-[12px]">

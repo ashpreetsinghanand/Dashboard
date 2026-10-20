@@ -4,6 +4,7 @@ import { api } from '../api/endpoints'
 import type { WarehouseDetails } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { DashboardShell } from '../components/DashboardShell'
+import { MarketRail } from '../components/MarketRail'
 import { BoxIcon, PinIcon, ShieldIcon, WarehouseIcon } from '../components/Icons'
 import { ErrorBanner, FieldError } from '../components/ui'
 import { money, mt, toApiDate, toUiDate } from '../lib/format'
@@ -37,7 +38,7 @@ export function WarehouseDetailPage() {
     return (
       <DashboardShell section="store">
         <main className="min-w-0 flex-1 px-5 pt-[15px] pb-10">
-          <div className="w-[880px]">
+          <div>
             {details.loading ? (
               <p className="rounded-[12px] bg-white px-4 py-8 text-center text-[14px] text-[#667085]">Loading warehouse…</p>
             ) : notFound ? (
@@ -96,11 +97,10 @@ export function WarehouseDetailPage() {
         </div>
 
         <section className="relative mt-3 h-[150px] overflow-hidden rounded-[12px]">
-          <img src={gallery[0]} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0E4F38]/80 via-[#0E4F38]/55 to-[#0E4F38]/20" />
-          <div className="relative px-[15px] pt-[15px] text-white">
-            <h1 className="text-[24px] leading-[29px] font-bold">Warehouse Details</h1>
-            <p className="mt-[10px] max-w-[641px] text-[14px] leading-[19px]">
+          <img src="/assets/silo-banner.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="relative px-[15px] pt-[15px]">
+            <h1 className="text-[24px] leading-[29px] font-bold text-[#1A1A1A]">Warehouse Details</h1>
+            <p className="mt-[10px] max-w-[641px] text-[14px] leading-[19px] text-[#667085]">
               Store your produce safely, get warehouse receipts. access finance and better prices.
             </p>
           </div>
@@ -146,11 +146,13 @@ export function WarehouseDetailPage() {
           </div>
         </div>
 
-        <p className="mt-4 max-w-[880px] text-[13px] leading-[17px] text-[#667085]">
+        <p className="mt-4 text-[13px] leading-[17px] text-[#667085]">
           {warehouse.description}
         </p>
 
-        <div className="mt-4 grid w-[880px] grid-cols-[610px_250px] gap-5">
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_300px] items-start gap-5">
+        <div className="min-w-0">
+        <div className="grid grid-cols-[minmax(0,1fr)_250px] gap-5">
           <div className="relative h-[340px] overflow-hidden rounded-[12px]">
             <img src={gallery[current]} alt="" className="h-full w-full object-cover" />
             <button
@@ -200,14 +202,14 @@ export function WarehouseDetailPage() {
           </div>
         </div>
 
-        <div className="mt-5 grid w-[880px] grid-cols-4 gap-5">
+        <div className="mt-5 grid grid-cols-4 gap-5">
           <Stat icon={WarehouseIcon} label="Total Capacity" value={mt(warehouse.totalCapacityMt)} />
           <Stat icon={BoxIcon} label="Available Capacity" value={mt(warehouse.availableCapacityMt)} />
           <Stat icon={ShieldIcon} label="Current Occupancy" value={mt(warehouse.occupancyMt)} />
           <Stat icon={PinIcon} label="Average rating" value={rating} />
         </div>
 
-        <div className="mt-5 flex h-[50px] w-[880px] items-center gap-7 overflow-x-auto rounded-[10px] bg-white px-[15px]">
+        <div className="mt-5 flex h-[50px] items-center gap-7 overflow-x-auto rounded-[10px] bg-white px-[15px]">
           {tabs.map((item) => (
             <button
               key={item}
@@ -223,7 +225,7 @@ export function WarehouseDetailPage() {
         </div>
 
         {tab === 'Overview' && (
-          <div className="mt-5 grid w-[880px] grid-cols-3 items-start gap-5">
+          <div className="mt-5 grid grid-cols-3 items-start gap-5">
             <article className="flex min-h-[438px] flex-col rounded-[12px] bg-white px-[15px] py-[15px]">
               <h3 className="text-[15px] leading-[18px] font-semibold">Warehouse Information</h3>
               <div className="mt-3 grid gap-[10px]">
@@ -379,6 +381,9 @@ export function WarehouseDetailPage() {
             )}
           </Panel>
         )}
+        </div>
+        <MarketRail />
+        </div>
       </main>
 
       {booking && !restoring && (!user ? <Navigate to="/login" replace /> : canBook && <BookNowModal warehouse={warehouse} onClose={closeBook} />)}
@@ -415,7 +420,7 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 function Panel({ children }: { children: ReactNode }) {
-  return <section className="mt-5 w-[880px] rounded-[12px] bg-white p-5">{children}</section>
+  return <section className="mt-5 rounded-[12px] bg-white p-5">{children}</section>
 }
 
 function BookNowModal({ warehouse, onClose }: { warehouse: WarehouseDetails; onClose: () => void }) {

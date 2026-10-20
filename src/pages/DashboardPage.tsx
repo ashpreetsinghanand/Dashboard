@@ -102,7 +102,7 @@ export function DashboardPage() {
   return (
     <DashboardShell section="home">
         <main className="min-w-0 flex-1 px-5 pt-5 pb-8">
-          <div className="grid w-[1200px] grid-cols-[880px_300px] gap-5">
+          <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-5">
             <div>
               <div className="flex items-start justify-between">
                 <div>
@@ -127,7 +127,7 @@ export function DashboardPage() {
                 </div>
               ) : null}
 
-              <div className="mt-5 grid grid-cols-[250px_250px_340px] gap-5">
+              <div className="mt-5 grid grid-cols-[1fr_1fr_1.36fr] gap-5">
                 <article className="flex h-[200px] flex-col rounded-[16px] bg-white px-[15px] pt-[15px] pb-4">
                   <p className="flex items-center gap-2 text-[15px] leading-[19px] font-semibold">
                     <CloudMiniIcon className="size-[15px] text-[#7CC4F0]" />
@@ -159,9 +159,13 @@ export function DashboardPage() {
                 <article className="relative h-[200px] overflow-hidden rounded-[16px]">
                   <img src="/assets/farmer-field.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/15 to-transparent" />
-                  <div className="relative max-w-[196px] px-[15px] pt-[59px]">
-                    <p className="text-[20px] leading-6 font-semibold text-white">
-                      Better Storage Better Prices A Brighter Tomorrow
+                  <div className="relative px-[15px] pt-[59px]">
+                    <p className="text-[17px] leading-[21px] font-medium text-white">
+                      Better Storage
+                      <br />
+                      Better Prices
+                      <br />
+                      A Brighter Tomorrow
                     </p>
                     <span className="mt-2 block h-px w-14 bg-white" />
                   </div>
@@ -217,7 +221,7 @@ export function DashboardPage() {
               ) : null}
             </div>
 
-            <aside className="grid content-start gap-5">
+            <aside className="grid grid-cols-1 content-start gap-5">
               <article className="min-h-[278px] rounded-[16px] bg-white px-[15px] pt-[15px]">
                 <div className="flex items-center justify-between border-b border-[#F2F4F7] pb-2.5">
                   <h2 className="text-[20px] leading-[29px] font-bold">Your Activity</h2>
@@ -233,15 +237,15 @@ export function DashboardPage() {
                     <div
                       key={tile.key}
                       title={tile.note ?? undefined}
-                      className="flex h-[50px] items-center justify-between border-b border-[#F2F4F7] text-[14px] last:border-0"
+                      className="flex min-h-[50px] items-center justify-between gap-2 border-b border-[#F2F4F7] py-1.5 text-[14px] last:border-0"
                     >
-                      <span className="flex items-center gap-2.5 text-[#667085]">
-                        <span className="grid size-[30px] place-items-center rounded-[8px] bg-[#F4F7FB] text-[#667085]">
+                      <span className="flex min-w-0 items-center gap-2.5 leading-[17px] text-[#667085]">
+                        <span className="grid size-[30px] shrink-0 place-items-center rounded-[8px] bg-[#F4F7FB] text-[#667085]">
                           <Icon className="size-4" />
                         </span>
                         {tile.label}
                       </span>
-                      <span className="font-semibold text-[#1E1E1E]">{statValue(tile, currency)}</span>
+                      <span className="shrink-0 font-semibold text-[#1E1E1E]">{statValue(tile, currency)}</span>
                     </div>
                   )
                 })}
@@ -296,7 +300,7 @@ export function DashboardPage() {
                   {insights.data?.map((price) => (
                     <div key={price.commodity} className="flex items-center gap-2 text-[13px]">
                       <img src={price.imageUrl} alt="" className="size-[30px] rounded-[6px] object-cover" />
-                      <span className="flex-1">{price.commodity}</span>
+                      <span className="min-w-0 flex-1 truncate">{price.commodity}</span>
                       <span>{money(price.pricePerKg, currency)}</span>
                       <span className={`w-14 text-right ${price.changePct < 0 ? 'text-[#D92D20]' : 'text-[#1F8955]'}`}>
                         {pct(price.changePct)}
