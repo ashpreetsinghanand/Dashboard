@@ -58,6 +58,7 @@ export function PhonePage() {
               onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 10))}
               inputMode="numeric"
               placeholder="Mobile number"
+              aria-label="Mobile number"
               className="ml-2 w-full bg-transparent text-[14px] text-[#1E1E1E] outline-none placeholder:text-[#B0B6BE]"
             />
           </div>

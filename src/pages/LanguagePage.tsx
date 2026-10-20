@@ -57,7 +57,7 @@ export function LanguagePage() {
     <AuthScreen
       filled={1}
       title="Choose Your Language"
-      subtitle="Select your prefeed language to continue"
+      subtitle="Select your preferred language to continue"
     >
       <div className="mt-[30px] flex w-[811px] flex-col gap-[25px]">
         <div className="grid grid-cols-4 gap-[25px]">

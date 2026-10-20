@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { api } from '../../api/endpoints'
 import type { Enwr } from '../../api/types'
 import { RequestLayout, StatusPill } from '../../components/RequestLayout'
-import { ErrorBanner, LedgerTimeline, Modal } from '../../components/ui'
+import { ErrorBanner, LedgerTimeline, Modal, useConfirm } from '../../components/ui'
+import { useToast } from '../../components/Toast'
 import { money, mt, statusLabel, toUiDate } from '../../lib/format'
 import { useAction, useApi } from '../../lib/useApi'
 
@@ -16,12 +17,15 @@ export function OwnerReceiptsPage() {
   const [page, setPage] = useState(0)
   const receipts = useApi(() => api.enwrs.search({ warehouseId: warehouseId || undefined, page }), [warehouseId, page])
   const [ledgerFor, setLedgerFor] = useState<Enwr>()
-  const [notice, setNotice] = useState<string>()
+  const toast = useToast()
   const action = useAction((fn: () => Promise<string>) => fn())
 
-  async function perform(fn: () => Promise<string>) {
-    setNotice(undefined)
-    setNotice(await action.run(fn))
+  const [ask, confirmDialog] = useConfirm()
+
+  async function perform(fn: () => Promise<string>, question: string, label: string) {
+    if (!(await ask(question, label))) return
+    const message = await action.run(fn)
+    if (message) toast(message)
     receipts.reload()
   }
 
@@ -61,7 +65,6 @@ export function OwnerReceiptsPage() {
       <ErrorBanner error={warehouses.error} onRetry={warehouses.reload} />
       <ErrorBanner error={receipts.error} onRetry={receipts.reload} />
       <ErrorBanner error={action.error} />
-      {notice && <p className="rounded-[10px] bg-[#E7F6EE] px-4 py-3 text-[14px] text-[#1F8955]">{notice}</p>}
       <div className="mt-3 overflow-hidden rounded-[12px] bg-white">
         <div className={`grid h-[50px] ${cols} items-center pl-[15px] text-[13px] text-[#667085]`}>
           <span>Commodity</span>
@@ -108,7 +111,7 @@ export function OwnerReceiptsPage() {
                       perform(async () => {
                         const inv = await api.enwrs.billNextPeriod(row.id)
                         return `Invoice ${inv.invoiceNo} issued: ${money(inv.amount, inv.currency)} for ${toUiDate(inv.periodFrom)} – ${toUiDate(inv.periodTo)}.`
-                      })
+                      }, `Bill ${row.ownerName} for the next storage period of ${row.receiptNo}?`, 'Issue invoice')
                     }
                   >
                     Bill next period
@@ -123,7 +126,7 @@ export function OwnerReceiptsPage() {
                       perform(async () => {
                         const done = await api.enwrs.release(row.id)
                         return `${done.receiptNo} released; ${mt(done.quantityMt)} of capacity is free again.`
-                      })
+                      }, `Release ${mt(row.quantityMt)} of ${row.commodity} (${row.receiptNo}) back to ${row.ownerName}? The receipt closes and cannot be traded or pledged again.`, 'Release stock')
                     }
                   >
                     Release stock
@@ -160,6 +163,7 @@ export function OwnerReceiptsPage() {
           <LedgerTimeline load={() => api.enwrs.ledger(ledgerFor.id)} />
         </Modal>
       )}
+      {confirmDialog}
     </RequestLayout>
   )
 }

@@ -267,7 +267,8 @@ export function ListingDetailsModal({ id, onClose }: { id: number; onClose: () =
 /** "View Offer": every bid on a listing; the seller accepts or rejects the active ones. */
 export function OffersModal({ listing, onClose, onDone }: { listing: Listing; onClose: () => void; onDone: () => void }) {
   const bids = useApi(() => api.listings.bids(listing.id), [listing.id])
-  const [confirming, setConfirming] = useState<Bid>()
+  // the bid awaiting a yes/no, and whether the seller is accepting or rejecting it (both are irreversible)
+  const [confirming, setConfirming] = useState<{ bid: Bid; accept: boolean }>()
   const [settled, setSettled] = useState<Settlement>()
   const accept = useAction(api.bids.accept)
   const reject = useAction(api.bids.reject)
@@ -317,10 +318,10 @@ export function OffersModal({ listing, onClose, onDone }: { listing: Listing; on
               </span>
               {bid.status === 'ACTIVE' ? (
                 <span className="flex shrink-0 gap-2">
-                  <button type="button" disabled={busy} onClick={() => setConfirming(bid)} className={`${primaryBtn} h-8 px-3 text-[13px]`}>
+                  <button type="button" disabled={busy} onClick={() => setConfirming({ bid, accept: true })} className={`${primaryBtn} h-8 px-3 text-[13px]`}>
                     Accept
                   </button>
-                  <button type="button" disabled={busy} onClick={() => decide(bid, false)} className={`${secondaryBtn} h-8 px-3 text-[13px]`}>
+                  <button type="button" disabled={busy} onClick={() => setConfirming({ bid, accept: false })} className={`${secondaryBtn} h-8 px-3 text-[13px]`}>
                     Reject
                   </button>
                 </span>
@@ -328,17 +329,19 @@ export function OffersModal({ listing, onClose, onDone }: { listing: Listing; on
                 <StatusPill status={statusLabel(bid.status)} />
               )}
             </div>
-            {confirming?.id === bid.id ? (
-              <div className="mt-2 flex items-center justify-between gap-3 rounded-[8px] bg-[#E7F6EE] px-3 py-2">
+            {confirming?.bid.id === bid.id ? (
+              <div className={`mt-2 flex items-center justify-between gap-3 rounded-[8px] px-3 py-2 ${confirming.accept ? 'bg-[#E7F6EE]' : 'bg-[#FEF3F2]'}`}>
                 <span>
-                  Sell {mt(bid.quantityMt)} to {bid.buyerName} for {money(bid.totalValue)}? This settles the trade.
+                  {confirming.accept
+                    ? `Sell ${mt(bid.quantityMt)} to ${bid.buyerName} for ${money(bid.totalValue)}? This settles the trade.`
+                    : `Reject ${bid.buyerName}'s offer of ${mt(bid.quantityMt)} at ${perMt(bid.pricePerMt)}? This cannot be undone.`}
                 </span>
                 <span className="flex shrink-0 gap-2">
                   <button type="button" disabled={busy} onClick={() => setConfirming(undefined)} className={`${secondaryBtn} h-8 px-3 text-[13px]`}>
                     Cancel
                   </button>
-                  <button type="button" disabled={busy} onClick={() => decide(bid, true)} className={`${primaryBtn} h-8 px-3 text-[13px]`}>
-                    {accept.busy ? 'Settling…' : 'Confirm'}
+                  <button type="button" disabled={busy} onClick={() => decide(bid, confirming.accept)} className={`${primaryBtn} h-8 px-3 text-[13px]`}>
+                    {accept.busy ? 'Settling…' : reject.busy ? 'Rejecting…' : confirming.accept ? 'Confirm' : 'Reject offer'}
                   </button>
                 </span>
               </div>

@@ -3,6 +3,7 @@ import { api } from '../../api/endpoints'
 import type { Enwr, InspectionRequest } from '../../api/types'
 import { RequestLayout, StatusPill } from '../../components/RequestLayout'
 import { ErrorBanner, FieldError, Modal } from '../../components/ui'
+import { useToast } from '../../components/Toast'
 import { mt, statusLabel, toUiDate } from '../../lib/format'
 import { useAction, useApi } from '../../lib/useApi'
 
@@ -12,7 +13,7 @@ const input = 'h-9 w-full rounded-[8px] border border-[#E6E8EC] bg-white px-2.5 
 export function InspectionsPage() {
   const { data, loading, error, reload } = useApi(() => api.enwrs.pendingInspection(), [])
   const [inspecting, setInspecting] = useState<Enwr>()
-  const [notice, setNotice] = useState<string>()
+  const toast = useToast()
 
   return (
     <RequestLayout
@@ -23,7 +24,6 @@ export function InspectionsPage() {
       subtitle="Receipts awaiting a quality check. Approve to make them tradable, or reject them."
     >
       <ErrorBanner error={error} onRetry={reload} />
-      {notice && <p className="rounded-[10px] bg-[#E7F6EE] px-4 py-3 text-[14px] text-[#1F8955]">{notice}</p>}
       <div className="mt-3 overflow-hidden rounded-[12px] bg-white">
         <div className={`grid h-[50px] ${cols} items-center pl-[15px] text-[13px] text-[#667085]`}>
           <span>Commodity</span>
@@ -58,7 +58,6 @@ export function InspectionsPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setNotice(undefined)
                   setInspecting(row)
                 }}
                 className="h-[30px] w-[90px] rounded-[8px] bg-[#1F8955] text-[13px] font-medium text-white"
@@ -75,7 +74,7 @@ export function InspectionsPage() {
             receipt={inspecting}
             onDone={(message) => {
               setInspecting(undefined)
-              setNotice(message)
+              toast(message)
               reload()
             }}
             onFailed={reload}

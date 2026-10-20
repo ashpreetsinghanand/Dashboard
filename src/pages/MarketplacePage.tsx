@@ -100,7 +100,7 @@ export function MarketplacePage() {
               <p className="relative max-w-[280px] px-4 pt-6 text-[18px] leading-[22px] font-semibold text-white">
                 Trade with confidence
                 <br />
-                from farm to maket.
+                from farm to market.
               </p>
             </div>
 

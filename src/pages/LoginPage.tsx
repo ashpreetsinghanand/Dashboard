@@ -149,7 +149,7 @@ export function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Text your password"
+                  placeholder="Enter your password"
                   aria-label={step === 'password' ? 'New password' : 'Password'}
                   autoComplete={step === 'password' ? 'new-password' : 'current-password'}
                   className="mt-2 h-12 w-full rounded-[10px] border border-[#E6E8EC] bg-white px-4 text-[14px] outline-none placeholder:text-[#C5CAD1]"
@@ -164,7 +164,7 @@ export function LoginPage() {
                   type="password"
                   value={confirm}
                   onChange={(event) => setConfirm(event.target.value)}
-                  placeholder="Text your password"
+                  placeholder="Enter your password"
                   aria-label="Confirm password"
                   autoComplete="new-password"
                   className="mt-2 h-12 w-full rounded-[10px] border border-[#E6E8EC] bg-white px-4 text-[14px] outline-none placeholder:text-[#C5CAD1]"

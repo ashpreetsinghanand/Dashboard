@@ -7,6 +7,8 @@ COPY src src
 RUN mvn -B -q package
 
 FROM eclipse-temurin:17-jre
+# business dates ("today", invoice periods, receipt validity) are Indian dates; the JVM reads TZ
+ENV TZ=Asia/Kolkata
 WORKDIR /app
 COPY --from=build /app/target/krsi-backend-*.jar app.jar
 EXPOSE 8080

@@ -4,7 +4,8 @@ import type { Invoice, InvoiceStatus } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { RequestLayout, StatusPill } from '../components/RequestLayout'
 import { Pager } from '../components/store/Pager'
-import { ErrorBanner, LedgerTimeline, Modal } from '../components/ui'
+import { ErrorBanner, LedgerTimeline, Modal, useConfirm } from '../components/ui'
+import { useToast } from '../components/Toast'
 import { money, mt, shortHash, statusLabel, toUiDate } from '../lib/format'
 import { useAction, useApi } from '../lib/useApi'
 
@@ -21,7 +22,7 @@ export function StorageInvoicePage() {
   const [page, setPage] = useState(0)
   const [layout, setLayout] = useState<'list' | 'grid'>('list')
   const [details, setDetails] = useState<Invoice>()
-  const [notice, setNotice] = useState<string>()
+  const toast = useToast()
 
   const reference = useApi(() => api.reference.commodities(), [])
   const commodityChips = ['All Commodities', ...(reference.data?.map((item) => item.name) ?? [])]
@@ -47,18 +48,17 @@ export function StorageInvoicePage() {
   })
   const download = useAction(api.invoices.download)
   const busy = change.busy || download.busy
+  const [ask, confirmDialog] = useConfirm()
 
   async function pay(row: Invoice) {
-    if (!window.confirm(`Pay ${money(row.amount, row.currency)} for ${row.invoiceNo}?`)) return
-    setNotice(undefined)
+    if (!(await ask(`Pay ${money(row.amount, row.currency)} for ${row.invoiceNo}?`, 'Pay'))) return
     const paid = await change.run(() => api.invoices.pay(row.id))
-    if (paid) setNotice(`${paid.invoiceNo} paid${paid.paymentRef ? ` · ref ${paid.paymentRef}` : ''}.`)
+    if (paid) toast(`${paid.invoiceNo} paid${paid.paymentRef ? ` · ref ${paid.paymentRef}` : ''}.`)
   }
 
   async function cancel(row: Invoice) {
-    if (!window.confirm(`Cancel ${row.invoiceNo}? The depositor will no longer be billed for it.`)) return
-    setNotice(undefined)
-    if (await change.run(() => api.invoices.cancel(row.id))) setNotice(`${row.invoiceNo} cancelled.`)
+    if (!(await ask(`Cancel ${row.invoiceNo}? The depositor will no longer be billed for it.`, 'Cancel invoice'))) return
+    if (await change.run(() => api.invoices.cancel(row.id))) toast(`${row.invoiceNo} cancelled.`)
   }
 
   function actions(row: Invoice): ReactNode {
@@ -99,7 +99,7 @@ export function StorageInvoicePage() {
       storePage="Storage Invoice"
       crumb="Storage Invoice"
       title="Store"
-      subtitle="Track and manage you warehouse storage requests."
+      subtitle="Track and manage your warehouse storage requests."
       toolbar={
       <form
         className="flex items-center gap-[10px]"
@@ -181,11 +181,6 @@ export function StorageInvoicePage() {
         <div className="mt-3">
           <ErrorBanner error={change.error ?? download.error} />
         </div>
-      ) : null}
-      {notice ? (
-        <p role="status" className="mt-3 rounded-[10px] bg-[#E7F6EE] px-4 py-3 text-[14px] text-[#1F8955]">
-          {notice}
-        </p>
       ) : null}
       {error ? (
         <div className="mt-3">
@@ -287,6 +282,7 @@ export function StorageInvoicePage() {
           <LedgerTimeline load={() => api.ledger.entity('INVOICE', details.id)} />
         </Modal>
       )}
+      {confirmDialog}
     </RequestLayout>
   )
 }

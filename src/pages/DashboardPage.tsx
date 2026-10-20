@@ -27,6 +27,14 @@ const activityIcons: Record<string, typeof GrainIcon> = {
 
 const TRADERS: Role[] = ['FARMER', 'MERCHANT']
 
+/** Where each role's activity tiles come from. */
+const activityLink: Record<Role, string> = {
+  FARMER: '/trade/enwr',
+  MERCHANT: '/trade/enwr',
+  WAREHOUSE_OWNER: '/owner/receipts',
+  AUDITOR: '/audit/inspections',
+}
+
 const actions: { title: string; copy: string; image: string; bg: string; to: string; roles: Role[] }[] = [
   {
     title: 'Store',
@@ -122,11 +130,11 @@ export function DashboardPage() {
                   </p>
                 </div>
                 {data?.location ? (
-                  <button type="button" className="mt-1 flex items-center gap-1.5 text-[14px] leading-[17px] text-[#344054]">
+                  <Link to="/settings" title="Change your location" className="mt-1 flex items-center gap-1.5 text-[14px] leading-[17px] text-[#344054]">
                     <PinIcon className="size-3.5 text-[#1F8955]" />
                     {data.location}
                     <span className="text-[10px] text-[#667085]">▾</span>
-                  </button>
+                  </Link>
                 ) : null}
               </div>
               {error ? (
@@ -256,9 +264,9 @@ export function DashboardPage() {
               <article className="min-h-[278px] rounded-[16px] bg-white px-[15px] pt-[15px]">
                 <div className="flex items-center justify-between border-b border-[#F2F4F7] pb-2.5">
                   <h2 className="text-[20px] leading-[29px] font-bold">Your Activity</h2>
-                  <button type="button" className="flex items-center gap-1 text-[13px] leading-[15px] text-[#1F8955]">
+                  <Link to={activityLink[user?.role ?? 'FARMER']} className="flex items-center gap-1 text-[13px] leading-[15px] text-[#1F8955]">
                     View All <span aria-hidden="true">→</span>
-                  </button>
+                  </Link>
                 </div>
                 {loading && !data ? <p className="py-4 text-[14px] text-[#667085]">Loading…</p> : null}
                 {data && data.activity.length === 0 ? <p className="py-4 text-[14px] text-[#667085]">No activity yet.</p> : null}

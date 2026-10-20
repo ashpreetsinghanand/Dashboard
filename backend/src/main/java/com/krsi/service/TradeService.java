@@ -117,10 +117,10 @@ public class TradeService {
     public List<StatTile> listingStats(AuthUser me) {
         TradeRepository.ListingStats s = trades.listingStats(me.id());
         return List.of(
-                StatTile.count("activeListings", "Active Listings", s.active(), "+" + s.newThisWeek() + " this week"),
+                StatTile.count("activeListings", "Active Listings", s.active(), s.newThisWeek() + " new this week"),
                 StatTile.mt("listedQuantity", "Total Listed Quantity", s.listedMt(), null),
                 StatTile.money("askingValue", "Total Asking Value", s.askingValue(), null),
-                StatTile.count("offersReceived", "Offers Received", s.offers(), "+" + s.newOffersThisWeek() + " this week"));
+                StatTile.count("offersReceived", "Offers Received", s.offers(), s.newOffersThisWeek() + " new this week"));
     }
 
     public PageResponse<Listing> marketplace(TradeRequests.MarketSearch s) { return trades.marketplace(s); }
@@ -249,7 +249,7 @@ public class TradeService {
     public List<StatTile> bidStats(AuthUser me) {
         TradeRepository.BidStats s = trades.bidStats(me.id());
         return List.of(
-                StatTile.count("activeBids", "Active Bids", s.active(), "+" + s.newThisWeek() + " this week"),
+                StatTile.count("activeBids", "Active Bids", s.active(), s.newThisWeek() + " placed this week"),
                 StatTile.money("activeBidValue", "Total Bid Value", s.activeValue(), null),
                 StatTile.count("successfulBids", "Successful Bids", s.accepted(), null),
                 StatTile.count("pendingResponse", "Pending Response", s.active(), null));

@@ -261,15 +261,20 @@ export function DesktopPage() {
               <p className="mt-4 max-w-[358px] text-[14px] leading-[19px] text-white/90">
                 Empowering farmers, traders and businesses with transparent and efficient agriculture trade.
               </p>
-              <button type="button" className="mt-4 flex items-center gap-3 text-left text-[15px] leading-[19px] font-medium">
+              <a
+                href="https://medium.com/krsi-xyz/introducing-krsi-revolutionizing-warehouse-receipts-finance-with-ai-blockchain-depin-f51ad7c5d250"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 flex items-center gap-3 text-left text-[15px] leading-[19px] font-medium"
+              >
                 <span className="grid size-[50px] shrink-0 place-items-center rounded-full border border-white">
                   <span className="ml-0.5 border-y-[6px] border-l-[10px] border-y-transparent border-l-white" />
                 </span>
                 <span>
-                  Watch Our Story
-                  <span className="block text-[13px] leading-[17px] font-normal text-white/80">2 min</span>
+                  Read Our Story
+                  <span className="block text-[13px] leading-[17px] font-normal text-white/80">2 min read</span>
                 </span>
-              </button>
+              </a>
             </div>
           </article>
           <article className={`flex h-[250px] items-start gap-5 rounded-[16px] ${darkGreen} px-6 pt-[50px] text-white`}>

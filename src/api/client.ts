@@ -105,6 +105,11 @@ export async function openAuthenticated(path: string) {
   const response = await fetch(`${API_BASE}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
   if (!response.ok) throw new Error(`Download failed (${response.status})`)
   const url = URL.createObjectURL(await response.blob())
-  window.open(url, '_blank', 'noopener')
+  // a download link, not window.open: after the await the click no longer counts as a user gesture, so popups get blocked
+  const name = response.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/)?.[1] ?? 'download'
+  const link = Object.assign(document.createElement('a'), { href: url, download: name })
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
   setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }

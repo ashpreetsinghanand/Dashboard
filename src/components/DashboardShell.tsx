@@ -165,7 +165,7 @@ export function DashboardShell({
               <div>
                 <p className="text-[14px] leading-[17px] font-semibold">Need Help?</p>
                 <p className="mt-2 w-[102px] text-[12px] leading-[15px] text-[#667085]">
-                  Our team in here to support you.
+                  Our team is here to support you.
                 </p>
               </div>
             </div>

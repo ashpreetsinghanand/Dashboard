@@ -21,7 +21,7 @@ import type { ApiRequestError } from '../api/client'
 import { money, mt, perMt, shortHash, statusLabel, statValue, toUiDate } from '../lib/format'
 import { useApi } from '../lib/useApi'
 
-const enwrCopy = 'Buy and sell verified eNWRs fom trsuted warehouses across India.'
+const enwrCopy = 'Buy and sell verified eNWRs from trusted warehouses across India.'
 
 const enwrCols = 'grid-cols-[80fr_82fr_80fr_62fr_76fr_62fr_92fr_100fr_62fr_86fr_83fr]'
 const deskCols = 'grid-cols-[93fr_66fr_91fr_76fr_85fr_75fr_98fr_90fr_106fr_85fr]'
@@ -429,7 +429,7 @@ function TradeDesk({
               <h2 className="text-[20px] leading-[29px] font-bold">Need Storage?</h2>
               <img src="/assets/warehouse.png" alt="" className="mt-2 size-[66px] rounded-[10px] object-cover" />
               <p className="mt-3 text-[13px] leading-[17px] text-[#667085]">
-                Find verified warehouses across India and book storage fo your commodities.
+                Find verified warehouses across India and book storage for your commodities.
               </p>
               <Link
                 to="/store"

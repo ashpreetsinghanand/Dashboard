@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { ApiRequestError } from '../api/client'
 import type { EntityProof } from '../api/types'
 import { useApi } from '../lib/useApi'
@@ -31,6 +31,33 @@ export function Modal({ title, onClose, children, width = 'w-[520px]' }: { title
       </div>
     </div>
   )
+}
+
+/**
+ * In-app replacement for window.confirm (which embedded browsers block and which looks unlike the app).
+ * Usage: const [ask, confirmDialog] = useConfirm(); if (!(await ask('Pay ₹1,440?', 'Pay'))) return; ... render {confirmDialog}
+ */
+export function useConfirm(): [(message: string, confirmLabel?: string) => Promise<boolean>, ReactNode] {
+  const [pending, setPending] = useState<{ message: string; label: string; resolve: (ok: boolean) => void }>()
+  const ask = (message: string, label = 'Confirm') => new Promise<boolean>((resolve) => setPending({ message, label, resolve }))
+  const close = (ok: boolean) => {
+    pending?.resolve(ok)
+    setPending(undefined)
+  }
+  const dialog = pending ? (
+    <Modal title="Please confirm" onClose={() => close(false)} width="w-[420px]">
+      <p className="text-[14px] leading-5 text-[#344054]">{pending.message}</p>
+      <div className="mt-5 flex justify-end gap-3">
+        <button type="button" onClick={() => close(false)} className="h-10 rounded-[8px] border border-[#D0D5DD] px-4 text-[14px]">
+          Go back
+        </button>
+        <button type="button" autoFocus onClick={() => close(true)} className="h-10 rounded-[8px] bg-[#1F8955] px-4 text-[14px] font-medium text-white">
+          {pending.label}
+        </button>
+      </div>
+    </Modal>
+  ) : null
+  return [ask, dialog]
 }
 
 /** API error with its trace id (quote it in bug reports) and an optional retry. */

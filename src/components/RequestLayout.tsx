@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 import { extraTones } from '../lib/format'
 import { DashboardShell, type AuditPage, type OwnerPage, type ShellSection, type StorePage, type TradePage } from './DashboardShell'
 
@@ -26,6 +27,7 @@ export function RequestLayout({
   toolbar?: ReactNode
   children: ReactNode
 }) {
+  const { user } = useAuth()
   return (
     <DashboardShell section={section} storePage={storePage} tradePage={tradePage} ownerPage={ownerPage} auditPage={auditPage}>
       <main className="min-w-0 flex-1 px-5 pt-[15px] pb-8">
@@ -46,13 +48,15 @@ export function RequestLayout({
         </section>
         {toolbar ? <div className="mt-[15px]">{toolbar}</div> : null}
         <div className={`${toolbar ? 'mt-3' : 'mt-[15px]'} grid grid-cols-[minmax(0,1fr)_300px] items-start gap-5`}>
-          <div>{children}</div>
+          <div className="min-w-0">{children}</div>
           <aside className="grid grid-cols-1 gap-4">
+            {/* only depositors book storage; owners and auditors get no storage pitch */}
+            {(user?.role === 'FARMER' || user?.role === 'MERCHANT') && (
             <article className="rounded-[16px] bg-white px-4 pt-4 pb-4">
               <h2 className="text-[20px] leading-[29px] font-bold">Need Storage?</h2>
               <img src="/assets/warehouse.png" alt="" className="mt-2 size-[66px] rounded-[10px] object-cover" />
               <p className="mt-3 text-[13px] leading-[17px] text-[#667085]">
-                Find verified warehouses across India and book storage fo your commodities.
+                Find verified warehouses across India and book storage for your commodities.
               </p>
               <Link
                 to="/store"
@@ -61,6 +65,7 @@ export function RequestLayout({
                 Find Warehouse
               </Link>
             </article>
+            )}
             <article className="relative h-[217px] overflow-hidden rounded-[16px]">
               <img src="/assets/warehouse-card.png" alt="" className="absolute inset-0 h-full w-full object-cover" />
               <p className="relative max-w-[205px] px-[15px] pt-[23px] text-[18px] leading-6 font-semibold text-white">

@@ -5,7 +5,8 @@ import type { Booking, BookingStatus, DepositRequest, DepositResult } from '../a
 import { useAuth } from '../auth/AuthContext'
 import { RequestLayout, StatusPill } from '../components/RequestLayout'
 import { Pager } from '../components/store/Pager'
-import { ErrorBanner, FieldError, LedgerTimeline, Modal } from '../components/ui'
+import { ErrorBanner, FieldError, LedgerTimeline, Modal, useConfirm } from '../components/ui'
+import { useToast } from '../components/Toast'
 import { qtl, statusLabel, toUiDate } from '../lib/format'
 import { useAction, useApi } from '../lib/useApi'
 
@@ -36,7 +37,7 @@ export function BookingRequestPage() {
   const [more, setMore] = useState(false)
   const [menu, setMenu] = useState<number>()
   const [dialog, setDialog] = useState<Dialog>()
-  const [notice, setNotice] = useState<string>()
+  const toast = useToast()
 
   const reference = useApi(() => api.reference.commodities(), [])
   const commodities = ['All Commodities', ...(reference.data?.map((item) => item.name) ?? [])]
@@ -61,6 +62,7 @@ export function BookingRequestPage() {
     }
   }
   const cancelAction = useAction((id: number) => withReload(() => api.bookings.cancel(id)))
+  const [ask, confirmDialog] = useConfirm()
 
   const filter = (set: (value: string) => void) => (value: string) => {
     set(value)
@@ -68,9 +70,8 @@ export function BookingRequestPage() {
   }
 
   async function cancel(booking: Booking) {
-    if (!window.confirm(`Cancel the ${booking.commodity} booking at ${booking.warehouseName}?`)) return
-    setNotice(undefined)
-    if (await cancelAction.run(booking.id)) setNotice(`Booking ${booking.code} cancelled.`)
+    if (!(await ask(`Cancel the ${booking.commodity} booking at ${booking.warehouseName}?`, 'Cancel booking'))) return
+    if (await cancelAction.run(booking.id)) toast(`Booking ${booking.code} cancelled.`)
   }
 
   function menuItems(booking: Booking): { label: string; onSelect: () => void }[] {
@@ -103,7 +104,7 @@ export function BookingRequestPage() {
       storePage="Booking Request"
       crumb="Booking Request"
       title="Booking Request"
-      subtitle="Track and manage you warehouse storage requests."
+      subtitle="Track and manage your warehouse storage requests."
       toolbar={
       <form
         className="flex items-center gap-[15px]"
@@ -170,11 +171,6 @@ export function BookingRequestPage() {
         <div className="mt-3">
           <ErrorBanner error={cancelAction.error} />
         </div>
-      ) : null}
-      {notice ? (
-        <p role="status" className="mt-3 rounded-[10px] bg-[#E7F6EE] px-4 py-3 text-[14px] text-[#1F8955]">
-          {notice}
-        </p>
       ) : null}
       {error ? (
         <div className="mt-3">
@@ -249,7 +245,6 @@ export function BookingRequestPage() {
                             role="menuitem"
                             onClick={() => {
                               setMenu(undefined)
-                              setNotice(undefined)
                               item.onSelect()
                             }}
                             className={`px-3 py-2 text-left text-[13px] hover:bg-[#F9FAFB] ${
@@ -280,7 +275,7 @@ export function BookingRequestPage() {
             return withReload(() => (dialog.kind === 'accept' ? api.bookings.accept(id, note) : api.bookings.reject(id, note)))
           }}
           onDone={() => {
-            setNotice(`Booking ${dialog.booking.code} ${dialog.kind === 'accept' ? 'accepted' : 'rejected'}.`)
+            toast(`Booking ${dialog.booking.code} ${dialog.kind === 'accept' ? 'accepted' : 'rejected'}.`)
             closeDialog()
           }}
         />
@@ -291,7 +286,7 @@ export function BookingRequestPage() {
           onClose={closeDialog}
           submit={(body) => withReload(() => api.bookings.deposit(dialog.booking.id, body))}
           onDone={({ receipt, invoice }) => {
-            setNotice(`Arrival recorded: receipt ${receipt.receiptNo} is awaiting audit, invoice ${invoice.invoiceNo} issued.`)
+            toast(`Arrival recorded: receipt ${receipt.receiptNo} is awaiting audit, invoice ${invoice.invoiceNo} issued.`)
             closeDialog()
           }}
         />
@@ -301,6 +296,7 @@ export function BookingRequestPage() {
           <LedgerTimeline load={() => api.bookings.ledger(dialog.booking.id)} />
         </Modal>
       )}
+      {confirmDialog}
     </RequestLayout>
   )
 }
