@@ -87,6 +87,10 @@ export function DesktopPage() {
   const filters = ['All', ...movers.slice(0, 5).map((price) => price.commodity)]
   const trending = movers.filter((price) => filter === 'All' || price.commodity === filter).slice(0, 5)
   const lotsOf = (commodity: string) => listed.filter((lot) => lot.commodity === commodity)
+  // every commodity: the newest live lot where one exists, otherwise its market price; listed ones first
+  const rows = (prices.data ?? [])
+    .map((price) => ({ price, lot: lotsOf(price.commodity)[0] }))
+    .sort((x, y) => Number(!!y.lot) - Number(!!x.lot) || x.price.commodity.localeCompare(y.price.commodity))
   const tiles = [
     [crore(listed.reduce((sum, lot) => sum + lot.totalValue, 0)), 'Total marketplace value'],
     [mt(listed.reduce((sum, lot) => sum + lot.quantityMt, 0)), 'Available Inventory'],
@@ -208,22 +212,22 @@ export function DesktopPage() {
               <span>Listed</span>
             </div>
             <div className="mt-2">
-              {lots.data && listed.length === 0 ? <p className="px-4 py-6 text-[14px] text-[#667085]">No lots are listed yet.</p> : null}
-              {listed.slice(0, 7).map((lot) => (
+              {prices.loading && !prices.data ? <p className="px-4 py-6 text-[14px] text-[#667085]">Loading listings…</p> : null}
+              {rows.map(({ price, lot }) => (
                 <Link
-                  key={lot.id}
-                  to={`/marketplace?q=${encodeURIComponent(lot.commodity)}`}
+                  key={price.commodity}
+                  to={`/marketplace?q=${encodeURIComponent(price.commodity)}`}
                   className="grid h-[50px] grid-cols-[1.4fr_1.2fr_0.8fr_0.55fr_0.9fr_0.7fr] items-center rounded-[8px] px-4 text-[14px] leading-[17px] hover:bg-[#F9FAFB]"
                 >
-                  <span className="flex items-center gap-2 font-medium">
-                    <CommodityThumb src={lot.imageUrl} />
-                    {lot.commodity}
+                  <span className="flex min-w-0 items-center gap-2 font-medium">
+                    <CommodityThumb src={price.imageUrl} />
+                    <span className="truncate">{price.commodity}</span>
                   </span>
-                  <span>{lot.region}</span>
-                  <span>{mt(lot.quantityMt)}</span>
-                  <span>{lot.grade}</span>
-                  <span>{perMt(lot.askingPricePerMt).replace('/MT', '')}</span>
-                  <span className="text-[#667085]">{ago(lot.createdAt)}</span>
+                  <span className="truncate">{lot ? lot.region : price.bestMarket}</span>
+                  <span className={lot ? '' : 'text-[#98A2B3]'}>{lot ? mt(lot.quantityMt) : 'No lots'}</span>
+                  <span>{lot ? lot.grade : price.grade}</span>
+                  <span>{perMt(lot ? lot.askingPricePerMt : price.pricePerMt).replace('/MT', '')}</span>
+                  <span className="text-[#667085]">{ago(lot ? lot.createdAt : price.updatedAt)}</span>
                 </Link>
               ))}
             </div>
