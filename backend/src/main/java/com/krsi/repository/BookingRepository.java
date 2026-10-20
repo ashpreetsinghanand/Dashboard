@@ -75,6 +75,13 @@ public class BookingRepository {
                 + "WHERE id = ? AND status IN (" + placeholders + ")", args) == 1;
     }
 
+    /** An auditor rejected the receipt this booking produced: the booking ends as REJECTED with the auditor's note. */
+    public void rejectForReceipt(long enwrId, String note) {
+        jdbc.update("UPDATE bookings SET status = ?, decision_note = ?, decided_at = now() "
+                + "WHERE id = (SELECT booking_id FROM enwrs WHERE id = ?) AND status = ?",
+                BookingStatus.REJECTED.name(), note, enwrId, BookingStatus.DEPOSITED.name());
+    }
+
     public void setLedgerHash(long id, String hash) { jdbc.update("UPDATE bookings SET ledger_hash = ? WHERE id = ?", hash, id); }
 
     public long countForOwner(long ownerId, BookingStatus status) {

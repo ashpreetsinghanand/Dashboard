@@ -3,9 +3,12 @@ import type { BidStatus, BookingStatus, EnwrStatus, InvoiceStatus, ListingStatus
 /** 'yyyy-MM-dd' (API) -> 'dd/MM/yyyy' (UI). Also accepts ISO timestamps. */
 export function toUiDate(iso: string | null | undefined): string {
   if (!iso) return '-'
+  // a timestamp ("…T21:35:00Z") is the viewer's local day; slicing it would show the UTC day, a day early in India before 05:30
+  if (iso.includes('T')) return new Date(iso).toLocaleDateString('en-GB')
   const [y, m, d] = iso.slice(0, 10).split('-')
   return `${d}/${m}/${y}`
 }
+console.assert(toUiDate('2026-10-30') === '30/10/2026' && toUiDate(null) === '-')
 
 /** 'dd/MM/yyyy' (Book Now modal) -> 'yyyy-MM-dd' (API). Returns undefined when the text is not a full date. */
 export function toApiDate(ui: string): string | undefined {

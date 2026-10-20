@@ -263,3 +263,7 @@ CREATE TABLE IF NOT EXISTS ledger_blocks (
   payload TEXT NOT NULL               -- canonical JSON, hashed byte-for-byte
 );
 CREATE INDEX IF NOT EXISTS ledger_entity_idx ON ledger_blocks (entity_type, entity_id, height);
+
+-- Backfill: bookings whose receipt was rejected at inspection end as REJECTED (new rejections do this in EnwrService.inspect).
+UPDATE bookings SET status = 'REJECTED', decision_note = COALESCE(decision_note, 'Receipt rejected at inspection'), decided_at = COALESCE(decided_at, now())
+WHERE status = 'DEPOSITED' AND id IN (SELECT booking_id FROM enwrs WHERE status = 'REJECTED' AND booking_id IS NOT NULL);

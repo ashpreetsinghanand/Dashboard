@@ -12,6 +12,7 @@ import com.krsi.ledger.Payload;
 import com.krsi.model.EnwrStatus;
 import com.krsi.model.InspectionDecision;
 import com.krsi.model.Role;
+import com.krsi.repository.BookingRepository;
 import com.krsi.repository.EnwrRepository;
 import com.krsi.repository.EnwrRepository.ActionsResolver;
 import com.krsi.repository.EnwrRepository.Core;
@@ -37,12 +38,15 @@ public class EnwrService {
     private final WarehouseRepository warehouses;
     private final FinanceRepository finance;
     private final BlockchainLedger ledger;
+    private final BookingRepository bookings;
 
-    public EnwrService(EnwrRepository enwrs, WarehouseRepository warehouses, FinanceRepository finance, BlockchainLedger ledger) {
+    public EnwrService(EnwrRepository enwrs, WarehouseRepository warehouses, FinanceRepository finance, BlockchainLedger ledger,
+                       BookingRepository bookings) {
         this.enwrs = enwrs;
         this.warehouses = warehouses;
         this.finance = finance;
         this.ledger = ledger;
+        this.bookings = bookings;
     }
 
     /** Which buttons the viewer may use on a receipt. */
@@ -96,6 +100,8 @@ public class EnwrService {
         if (!approve) {
             warehouses.releaseCapacity(core.warehouseId(), core.quantityMt());
             finance.cancelPendingForEnwr(id);
+            String why = r.remarks() == null || r.remarks().isBlank() ? "" : ": " + r.remarks().trim();
+            bookings.rejectForReceipt(id, "Receipt " + core.receiptNo() + " rejected at inspection" + why);
         }
         String hash = ledger.record(LedgerEvent.of(approve ? LedgerEventType.ENWR_ISSUED : LedgerEventType.ENWR_REJECTED, "ENWR", id, me,
                 Payload.of("enwrId", id, "receiptNo", core.receiptNo(), "ownerId", core.ownerId(), "warehouseId", core.warehouseId(),
