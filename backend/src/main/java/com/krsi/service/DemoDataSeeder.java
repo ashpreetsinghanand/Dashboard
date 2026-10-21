@@ -12,6 +12,7 @@ import com.krsi.dto.response.TradeResponses;
 import com.krsi.model.AuditResult;
 import com.krsi.model.InspectionDecision;
 import com.krsi.model.UserCategory;
+import com.krsi.repository.KycRepository;
 import com.krsi.repository.MarketRepository;
 import com.krsi.repository.UserRepository;
 import com.krsi.security.AuthUser;
@@ -34,6 +35,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DemoDataSeeder {
+    private static final List<String> DEMO_PHONES = List.of("9000000001", "9000000002", "9000000003", "9000000004", "9000000005", "9000000006");
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
 
     private static final List<WarehouseRequests.Attribute> INFRASTRUCTURE = List.of(
@@ -59,10 +61,12 @@ public class DemoDataSeeder {
     private final TradeService trade;
     private final InvoiceService invoices;
     private final LoanService loans;
+    private final KycRepository kyc;
 
     public DemoDataSeeder(AppProperties properties, UserRepository users, MarketRepository market, AuthService auth,
                           WarehouseService warehouses, AuditService audits, BookingService bookings, EnwrService enwrs,
-                          TradeService trade, InvoiceService invoices, LoanService loans) {
+                          TradeService trade, InvoiceService invoices, LoanService loans, KycRepository kyc) {
+        this.kyc = kyc;
         this.properties = properties;
         this.users = users;
         this.market = market;
@@ -80,7 +84,9 @@ public class DemoDataSeeder {
     @Order(Ordered.LOWEST_PRECEDENCE)
     public void seed() {
         seedCommodities();
-        if (!properties.demo().seed() || users.count() > 0) return;
+        if (!properties.demo().seed()) return;
+        kyc.verifyDemoAccounts(DEMO_PHONES); // databases seeded before KYC existed
+        if (users.count() > 0) return;
         try {
             seedDemo();
             log.info("Demo data created. Sign in with 9000000001 (farmer), 9000000002 (merchant), 9000000003 (warehouse owner), "
@@ -122,6 +128,7 @@ public class DemoDataSeeder {
         AuthUser auditor = user("9000000004", "Priya Sharma", UserCategory.AUDITOR, "Lucknow", "Uttar Pradesh", 26.85, 80.95, pw);
         user("9000000005", "Bundelkhand Farmers FPO", UserCategory.FPO, "Mahoba", "Uttar Pradesh", 25.29, 79.87, pw);
         AuthUser processor = user("9000000006", "Shree Foods", UserCategory.FPU, "Orai", "Uttar Pradesh", 25.99, 79.45, pw);
+        kyc.verifyDemoAccounts(DEMO_PHONES);
 
         warehouse(owner, "nayak", "Nayak Warehouse", "Nayak Stone Industries", "WAH-UP-0823", "Nayak Industries Pvt. Ltd.", "Lalitpur, Uttar Pradesh",
                 "Lalitpur, UP", "Uttar Pradesh", 24.69, 78.42, "5000", List.of("Coffee", "Clove", "Arecanut", "Wheat", "Rice", "Turmeric",

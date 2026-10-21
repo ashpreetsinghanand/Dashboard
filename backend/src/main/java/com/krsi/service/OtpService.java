@@ -64,7 +64,7 @@ public class OtpService {
         sms.sendOtp(phone, code);
         log.info("OTP challenge {} created for {} ({})", id, mask(phone), purpose);
         return new OtpSent(id, mask(phone), config.ttl().toSeconds(), config.resendAfter().toSeconds(),
-                config.exposeInResponse() ? code : null);
+                config.exposeInResponse() ? code : purpose == OtpPurpose.SIGNUP && bypassOn() ? config.bypassCode() : null);
     }
 
     public OtpVerified verify(String challengeId, String code) {
@@ -74,8 +74,7 @@ public class OtpService {
         if (c.attempts() >= config.maxAttempts()) throw new ApiException(ErrorCode.OTP_EXPIRED, "Too many wrong attempts. Request a new code.");
         otps.incrementAttempts(c.id());
         // sign-up only: a bypass on password reset would let anyone take over any account
-        boolean bypass = c.purpose() == OtpPurpose.SIGNUP && config.bypassCode() != null && !config.bypassCode().isBlank()
-                && config.bypassCode().equals(code);
+        boolean bypass = c.purpose() == OtpPurpose.SIGNUP && bypassOn() && config.bypassCode().equals(code);
         if (bypass) log.warn("OTP bypass code used for sign-up of {}", mask(c.phone()));
         if (!bypass && !MessageDigest.isEqual(hash(c.id(), code).getBytes(StandardCharsets.UTF_8), c.codeHash().getBytes(StandardCharsets.UTF_8))) {
             int left = config.maxAttempts() - c.attempts() - 1;
@@ -95,6 +94,8 @@ public class OtpService {
         if (!otps.consume(c.id())) throw new ApiException(ErrorCode.OTP_INVALID, "This verification was already used");
         return c.phone();
     }
+
+    private boolean bypassOn() { return config.bypassCode() != null && !config.bypassCode().isBlank(); }
 
     private String randomCode() {
         int bound = (int) Math.pow(10, config.length());

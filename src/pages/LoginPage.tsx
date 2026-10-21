@@ -126,7 +126,7 @@ export function LoginPage() {
               <>
                 <OtpFields digits={digits} onChange={setDigits} />
                 {challenge.devOtp ? (
-                  <p className="mt-2 text-center text-[12px] text-[#98A2B3]">Dev code: {challenge.devOtp}</p>
+                  <p className="mt-2 text-center text-[12px] text-[#98A2B3]">Demo code: {challenge.devOtp}</p>
                 ) : null}
                 <p className="mt-[18px] text-center text-[14px] text-[#98A2B3]">
                   A code has been sent to {challenge.phoneMasked}

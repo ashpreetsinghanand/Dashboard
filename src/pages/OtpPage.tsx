@@ -106,7 +106,7 @@ export function OtpPage() {
           Enter your OTP which has been sent to your Phone No. and completely verify your account.
         </p>
         <OtpFields digits={digits} onChange={setDigits} />
-        {devOtp ? <p className="mt-2 text-center text-[12px] text-[#98A2B3]">Dev code: {devOtp}</p> : null}
+        {devOtp ? <p className="mt-2 text-center text-[12px] text-[#98A2B3]">Demo code: {devOtp}</p> : null}
         <p className="mt-[18px] text-center text-[14px] text-[#98A2B3]">
           A code has been sent to ******{phone.slice(-4)}
         </p>

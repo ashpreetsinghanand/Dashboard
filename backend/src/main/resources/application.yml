@@ -33,10 +33,9 @@ app:
     # Local development: return the OTP in the /auth/otp/send response so the UI can be tested without SMS.
     expose-in-response: ${OTP_EXPOSE_IN_RESPONSE:true}
     verification-ttl: 15m
-    # Fast2SMS API key: OTPs go out by SMS when set; blank logs a masked line instead (local development).
-    fast2sms-api-key: ${FAST2SMS_API_KEY:}
-    # Demo shortcut: this code (e.g. 000000) also verifies SIGN-UP phone checks. Never accepted for password reset. Blank = off.
-    bypass-code: ${OTP_BYPASS_CODE:}
+    # No SMS gateway yet: sign-up phone checks accept this code (shown on the OTP screen). Never accepted for password
+    # reset, where a shared code would let anyone take over any account. Set OTP_BYPASS_CODE to blank to turn it off.
+    bypass-code: ${OTP_BYPASS_CODE:000000}
   business:
     currency: ${CURRENCY:INR}
     receipt-validity-days: 180
@@ -54,8 +53,8 @@ app:
   kyc:
     # mock: dummy DigiLocker request ids, always verifies (demo). setu: real Setu DigiLocker (needs the SETU_* keys and an allowlisted IP).
     provider: ${KYC_PROVIDER:mock}
-    # Refuse bookings until the user is KYC-verified. Off while the mock is in use.
-    required-for-booking: ${KYC_REQUIRED_FOR_BOOKING:false}
+    # Refuse bookings until the user is KYC-verified (demo accounts are pre-verified by the demo seeder).
+    required-for-booking: ${KYC_REQUIRED_FOR_BOOKING:true}
     setu-base-url: ${SETU_DIGILOCKER_BASE_URL:https://dg-sandbox.setu.co}
     setu-client-id: ${SETU_CLIENT_ID:}
     setu-client-secret: ${SETU_CLIENT_SECRET:}

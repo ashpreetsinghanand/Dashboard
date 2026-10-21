@@ -27,10 +27,8 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000
       # KYC: mock by default; KYC_PROVIDER=setu plus the SETU_* keys from your shell to try real Setu DigiLocker
       KYC_PROVIDER: ${KYC_PROVIDER:-mock}
-      # blank: OTPs are only shown on screen (local dev); set it in your shell to send real SMS
-      FAST2SMS_API_KEY: ${FAST2SMS_API_KEY:-}
-      # demo only: e.g. 000000 also verifies sign-up OTPs (never password reset)
-      OTP_BYPASS_CODE: ${OTP_BYPASS_CODE:-}
+      # false = like Render: OTP codes are not returned to the browser
+      OTP_EXPOSE_IN_RESPONSE: ${OTP_EXPOSE_IN_RESPONSE:-true}
       SETU_CLIENT_ID: ${SETU_CLIENT_ID:-}
       SETU_CLIENT_SECRET: ${SETU_CLIENT_SECRET:-}
       SETU_PRODUCT_INSTANCE_ID: ${SETU_PRODUCT_INSTANCE_ID:-}

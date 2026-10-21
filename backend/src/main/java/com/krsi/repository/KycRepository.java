@@ -1,6 +1,7 @@
 package com.krsi.repository;
 
 import com.krsi.dto.response.KycResponses;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -40,6 +41,12 @@ public class KycRepository {
                 UPDATE kyc_records SET status = 'VERIFIED', full_name = ?, date_of_birth = ?, gender = ?, aadhaar_last4 = ?, updated_at = now()
                 WHERE user_id = ? AND request_id = ?""", fullName, dob, gender, last4, userId, requestId);
         jdbc.update("UPDATE users SET kyc_status = 'VERIFIED', kyc_verified_at = now() WHERE id = ?", userId);
+    }
+
+    /** Demo accounts count as KYC-verified so demos never stop at DigiLocker; real users still verify. */
+    public void verifyDemoAccounts(List<String> phones) {
+        for (String phone : phones)
+            jdbc.update("UPDATE users SET kyc_status = 'VERIFIED', kyc_verified_at = COALESCE(kyc_verified_at, now()) WHERE phone = ? AND kyc_status <> 'VERIFIED'", phone);
     }
 
     public void fail(long userId, String requestId) {
