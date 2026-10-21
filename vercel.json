@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/setu-relay/:path*/",
+      "destination": "/api/setu-relay?path=:path*/"
+    },
+    {
       "source": "/setu-relay/:path*",
       "destination": "/api/setu-relay?path=:path*"
     },
