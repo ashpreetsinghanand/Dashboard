@@ -60,6 +60,10 @@ export interface Dashboard {
 export interface KycStatus { status: 'NONE' | 'VERIFIED'; verifiedAt: string | null; fullName: string | null; aadhaarLast4: string | null; provider: string | null; requiredForBooking: boolean }
 export interface KycStart { requestId: string; url: string; provider: string }
 
+// ---------- notifications ----------
+export interface NotificationItem { id: number; eventType: string; title: string; body: string; link: string | null; createdAt: string; read: boolean }
+export interface NotificationFeed { unread: number; items: NotificationItem[] }
+
 // ---------- warehouses ----------
 export type WarehouseSort = 'NEAREST' | 'CAPACITY' | 'NAME' | 'RATING'
 export interface WarehouseSearch {

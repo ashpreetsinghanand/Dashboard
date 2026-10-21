@@ -128,5 +128,11 @@ export const api = {
     complete: (requestId: string) => post<T.KycStatus>(`/kyc/digilocker/${encodeURIComponent(requestId)}/complete`),
   },
 
+  notifications: {
+    feed: (limit = 20) => get<T.NotificationFeed>('/notifications', { limit }),
+    read: (id: number) => post<T.NotificationFeed>(`/notifications/${id}/read`),
+    readAll: () => post<T.NotificationFeed>('/notifications/read-all'),
+  },
+
   health: () => get<T.Health>('/health'),
 }

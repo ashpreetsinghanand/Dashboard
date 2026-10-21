@@ -284,3 +284,16 @@ CREATE TABLE IF NOT EXISTS kyc_records (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- In-app notifications, written from ledger events after each business change commits (NotificationService).
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users (id),
+  event_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  link TEXT,                           -- dashboard route to open, e.g. /store/booking
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  read_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS notification_user_idx ON notifications (user_id, id DESC);

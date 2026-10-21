@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -26,10 +27,12 @@ public class HashChainLedger implements BlockchainLedger {
 
     private final LedgerRepository blocks;
     private final AppProperties properties;
+    private final ApplicationEventPublisher events;
 
-    public HashChainLedger(LedgerRepository blocks, AppProperties properties) {
+    public HashChainLedger(LedgerRepository blocks, AppProperties properties, ApplicationEventPublisher events) {
         this.blocks = blocks;
         this.properties = properties;
+        this.events = events;
     }
 
     /** Creates block 0 on first start. Runs before the demo seeder. */
@@ -66,6 +69,7 @@ public class HashChainLedger implements BlockchainLedger {
                 event.entityType(), entityId, actor, payload);
         blocks.insert(block);
         log.info("Ledger block {} {} {}#{} {}", height, event.type(), event.entityType(), entityId, hash.substring(0, 12));
+        events.publishEvent(event); // NotificationService picks this up after the business transaction commits
         return block;
     }
 

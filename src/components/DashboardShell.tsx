@@ -1,5 +1,6 @@
 import { Fragment, useState, type FormEvent, type ReactNode } from 'react'
 import { KrsiLogo } from './PublicHeader'
+import { NotificationBell } from './NotificationBell'
 import { Link, useNavigate } from 'react-router-dom'
 import type { Role } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
@@ -237,33 +238,36 @@ function AppTopBar() {
         ))}
       </nav>
       {user ? (
-        <div className="relative ml-auto">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-expanded={menuOpen}
-            className="flex items-center gap-2.5 text-left"
-          >
-            <span className="grid size-10 place-items-center rounded-full bg-[#E7F6EE] text-[14px] font-semibold text-[#1F8955]">{initials}</span>
-            <span>
-              <span className="block text-[14px] leading-[19px] font-semibold">{user.displayName}</span>
-              <span className="block text-[12px] leading-[15px] text-[#667085]">{user.categoryLabel}</span>
-            </span>
-            <svg viewBox="0 0 20 20" className="size-4 text-[#667085]" aria-hidden="true">
-              <path d="M5 7.5 10 12.5 15 7.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 mt-2 w-[180px] rounded-[10px] border border-[#E6E8EC] bg-white p-1 shadow-lg">
-              <button
-                type="button"
-                onClick={logout}
-                className="h-9 w-full rounded-[8px] px-3 text-left text-[14px] text-[#D92D20] hover:bg-[#FEF3F2]"
-              >
-                Sign out
-              </button>
-            </div>
-          )}
+        <div className="ml-auto flex items-center gap-4">
+          <NotificationBell />
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-expanded={menuOpen}
+              className="flex items-center gap-2.5 text-left"
+            >
+              <span className="grid size-10 place-items-center rounded-full bg-[#E7F6EE] text-[14px] font-semibold text-[#1F8955]">{initials}</span>
+              <span>
+                <span className="block text-[14px] leading-[19px] font-semibold">{user.displayName}</span>
+                <span className="block text-[12px] leading-[15px] text-[#667085]">{user.categoryLabel}</span>
+              </span>
+              <svg viewBox="0 0 20 20" className="size-4 text-[#667085]" aria-hidden="true">
+                <path d="M5 7.5 10 12.5 15 7.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-[180px] rounded-[10px] border border-[#E6E8EC] bg-white p-1 shadow-lg">
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="h-9 w-full rounded-[8px] px-3 text-left text-[14px] text-[#D92D20] hover:bg-[#FEF3F2]"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <Link to="/login" className="ml-auto rounded-[8px] bg-[#1F8955] px-4 py-2 text-[14px] font-medium text-white">
