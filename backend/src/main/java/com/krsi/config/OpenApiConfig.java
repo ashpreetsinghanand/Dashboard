@@ -35,6 +35,7 @@ public class OpenApiConfig {
     public static final String TAG_MARKET = "9. Market prices";
     public static final String TAG_AUDIT = "10. Audit & ledger";
     public static final String TAG_SYSTEM = "11. System & reference";
+    public static final String TAG_KYC = "12. KYC (DigiLocker)";
     public static final String BEARER = "bearerAuth";
 
     private static final String ERROR_SCHEMA = "ErrorEnvelope";
@@ -70,7 +71,8 @@ public class OpenApiConfig {
                 .addTagsItem(new Tag().name(TAG_LOANS).description("Loans against receipts (demo lender)"))
                 .addTagsItem(new Tag().name(TAG_MARKET).description("Commodity prices, gainers/losers, watchlist"))
                 .addTagsItem(new Tag().name(TAG_AUDIT).description("Quality inspections, warehouse audits, ledger verification"))
-                .addTagsItem(new Tag().name(TAG_SYSTEM).description("Health and reference lists"));
+                .addTagsItem(new Tag().name(TAG_SYSTEM).description("Health and reference lists"))
+                .addTagsItem(new Tag().name(TAG_KYC).description("Aadhaar KYC via DigiLocker (Setu), required before booking when enabled"));
     }
 
     /** Documents the error body once and attaches it to every 4xx/5xx response. */

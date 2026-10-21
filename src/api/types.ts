@@ -15,7 +15,7 @@ export type AuditResult = 'PASSED' | 'PASSED_WITH_OBSERVATIONS' | 'FAILED'
 // ---------- envelope ----------
 export type ErrorCode =
   | 'INVALID_REQUEST' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND' | 'METHOD_NOT_ALLOWED' | 'CONFLICT'
-  | 'INVALID_STATE' | 'OTP_INVALID' | 'OTP_EXPIRED' | 'RATE_LIMITED' | 'DEPENDENCY_UNAVAILABLE' | 'INTERNAL_ERROR'
+  | 'INVALID_STATE' | 'OTP_INVALID' | 'OTP_EXPIRED' | 'RATE_LIMITED' | 'DEPENDENCY_UNAVAILABLE' | 'INTERNAL_ERROR' | 'KYC_REQUIRED'
 export interface FieldIssue { field: string; message: string }
 export interface ApiError { code: ErrorCode; message: string; details: FieldIssue[] }
 export interface ApiResponse<T> { success: boolean; data: T | null; error: ApiError | null; traceId: string; timestamp: string }
@@ -55,6 +55,10 @@ export interface Dashboard {
   role: Role; displayName: string; location: string | null; currency: string
   activity: StatTile[]; tasks: DashboardTask[]; marketPrices: CommodityPrice[]
 }
+
+// ---------- kyc ----------
+export interface KycStatus { status: 'NONE' | 'VERIFIED'; verifiedAt: string | null; fullName: string | null; aadhaarLast4: string | null; provider: string | null }
+export interface KycStart { requestId: string; url: string; provider: string }
 
 // ---------- warehouses ----------
 export type WarehouseSort = 'NEAREST' | 'CAPACITY' | 'NAME' | 'RATING'

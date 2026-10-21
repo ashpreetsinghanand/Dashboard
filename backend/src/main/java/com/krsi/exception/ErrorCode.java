@@ -15,6 +15,8 @@ public enum ErrorCode {
     INVALID_STATE(HttpStatus.CONFLICT),
     OTP_INVALID(HttpStatus.BAD_REQUEST),
     OTP_EXPIRED(HttpStatus.GONE),
+    /** The user must verify their identity (DigiLocker KYC) first, e.g. before booking storage. */
+    KYC_REQUIRED(HttpStatus.FORBIDDEN),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS),
     DEPENDENCY_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);

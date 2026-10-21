@@ -4,6 +4,7 @@ import { api } from '../api/endpoints'
 import type { WarehouseDetails } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { DashboardShell } from '../components/DashboardShell'
+import { KycGate } from '../components/KycGate'
 import { MarketRail } from '../components/MarketRail'
 import { BoxIcon, PinIcon, ShieldIcon, WarehouseIcon } from '../components/Icons'
 import { ErrorBanner, FieldError } from '../components/ui'
@@ -387,7 +388,11 @@ export function WarehouseDetailPage() {
         </div>
       </main>
 
-      {booking && !restoring && (!user ? <Navigate to="/login" replace /> : canBook && <BookNowModal warehouse={warehouse} onClose={closeBook} />)}
+      {booking && !restoring && (!user ? <Navigate to="/login" replace /> : canBook && (
+        <KycGate onClose={closeBook}>
+          <BookNowModal warehouse={warehouse} onClose={closeBook} />
+        </KycGate>
+      ))}
       {lightbox && (
         <button type="button" className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-10" onClick={() => setLightbox(false)}>
           <img src={gallery[current]} alt="" className="max-h-full max-w-[900px] rounded-[12px] object-contain" />

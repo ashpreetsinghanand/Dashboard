@@ -7,6 +7,7 @@ import { CategoryPage } from './pages/CategoryPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { DesktopPage } from './pages/DesktopPage'
 import { FindWarehousePage } from './pages/FindWarehousePage'
+import { KycCallbackPage } from './pages/KycCallbackPage'
 import { LanguagePage } from './pages/LanguagePage'
 import { LoansPage } from './pages/LoansPage'
 import { LoginPage } from './pages/LoginPage'
@@ -54,6 +55,7 @@ export default function App() {
       <Route path="/trade/history" element={p(<TradePage page="history" />, TRADERS)} />
       <Route path="/trade/loans" element={p(<LoansPage />, TRADERS)} />
       <Route path="/alerts" element={p(<PriceAlertsPage />)} />
+      <Route path="/kyc/callback" element={p(<KycCallbackPage />)} />
       <Route path="/settings" element={p(<SettingsPage />)} />
       <Route path="/owner/warehouses" element={p(<MyWarehousesPage />, ['WAREHOUSE_OWNER'])} />
       <Route path="/owner/receipts" element={p(<OwnerReceiptsPage />, ['WAREHOUSE_OWNER'])} />

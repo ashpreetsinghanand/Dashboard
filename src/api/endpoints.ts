@@ -122,5 +122,11 @@ export const api = {
     due: (days = 90, limit = 50) => get<T.WarehouseSummary[]>('/audits/due', { days, limit }),
   },
 
+  kyc: {
+    status: () => get<T.KycStatus>('/kyc'),
+    start: (redirectUrl: string) => post<T.KycStart>('/kyc/digilocker', { redirectUrl }),
+    complete: (requestId: string) => post<T.KycStatus>(`/kyc/digilocker/${encodeURIComponent(requestId)}/complete`),
+  },
+
   health: () => get<T.Health>('/health'),
 }

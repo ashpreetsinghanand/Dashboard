@@ -45,9 +45,11 @@ public class BookingService {
     private final MarketService market;
     private final BlockchainLedger ledger;
     private final AppProperties.Business business;
+    private final KycService kyc;
 
     public BookingService(BookingRepository bookings, WarehouseRepository warehouses, EnwrRepository enwrs, EnwrService enwrService,
-                          InvoiceService invoices, MarketService market, BlockchainLedger ledger, AppProperties properties) {
+                          InvoiceService invoices, MarketService market, BlockchainLedger ledger, AppProperties properties, KycService kyc) {
+        this.kyc = kyc;
         this.bookings = bookings;
         this.warehouses = warehouses;
         this.enwrs = enwrs;
@@ -60,6 +62,7 @@ public class BookingService {
 
     @Transactional
     public BookingResponse create(AuthUser me, BookingRequests.Create r) {
+        kyc.requireVerifiedForBooking(me);
         WarehouseRepository.Core w = warehouses.core(r.warehouseId()).orElseThrow(() -> ApiException.notFound("Warehouse", r.warehouseId()));
         String commodity = market.canonical(r.commodity());
         if (w.crops().stream().noneMatch(c -> c.equalsIgnoreCase(commodity)))

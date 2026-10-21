@@ -47,6 +47,15 @@ app:
     # Creates demo users, warehouses, prices and a complete storage-to-trade flow when the database is empty.
     seed: ${DEMO_SEED:true}
     password: ${DEMO_PASSWORD:Krsi@1234}
+  kyc:
+    # mock: dummy DigiLocker request ids, always verifies (demo). setu: real Setu DigiLocker (needs the SETU_* keys and an allowlisted IP).
+    provider: ${KYC_PROVIDER:mock}
+    # Refuse bookings until the user is KYC-verified. Off while the mock is in use.
+    required-for-booking: ${KYC_REQUIRED_FOR_BOOKING:false}
+    setu-base-url: ${SETU_DIGILOCKER_BASE_URL:https://dg-sandbox.setu.co}
+    setu-client-id: ${SETU_CLIENT_ID:}
+    setu-client-secret: ${SETU_CLIENT_SECRET:}
+    setu-product-instance-id: ${SETU_PRODUCT_INSTANCE_ID:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 springdoc:

@@ -14,6 +14,7 @@ public record AppProperties(
         @DefaultValue Business business,
         @DefaultValue Ledger ledger,
         @DefaultValue Demo demo,
+        @DefaultValue Kyc kyc,
         @DefaultValue Cors cors) {
 
     /** JWT signing and sign-up rules. */
@@ -47,6 +48,15 @@ public record AppProperties(
 
     /** Demo data seeded into an empty database. */
     public record Demo(@DefaultValue("true") boolean seed, @DefaultValue("Krsi@1234") String password) {}
+
+    /** Identity check before booking: Setu DigiLocker, or a mock that always verifies. */
+    public record Kyc(
+            @DefaultValue("mock") String provider,
+            @DefaultValue("false") boolean requiredForBooking,
+            @DefaultValue("https://dg-sandbox.setu.co") String setuBaseUrl,
+            String setuClientId,
+            String setuClientSecret,
+            String setuProductInstanceId) {}
 
     /** Browser origins (the React app) allowed to call the API. */
     public record Cors(

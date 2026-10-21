@@ -25,6 +25,11 @@ services:
       DB_USER: krsi
       DB_PASSWORD: local_dev_only
       CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000
+      # KYC: mock by default; KYC_PROVIDER=setu plus the SETU_* keys from your shell to try real Setu DigiLocker
+      KYC_PROVIDER: ${KYC_PROVIDER:-mock}
+      SETU_CLIENT_ID: ${SETU_CLIENT_ID:-}
+      SETU_CLIENT_SECRET: ${SETU_CLIENT_SECRET:-}
+      SETU_PRODUCT_INSTANCE_ID: ${SETU_PRODUCT_INSTANCE_ID:-}
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:

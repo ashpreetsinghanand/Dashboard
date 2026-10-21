@@ -267,3 +267,20 @@ CREATE INDEX IF NOT EXISTS ledger_entity_idx ON ledger_blocks (entity_type, enti
 -- Backfill: bookings whose receipt was rejected at inspection end as REJECTED (new rejections do this in EnwrService.inspect).
 UPDATE bookings SET status = 'REJECTED', decision_note = COALESCE(decision_note, 'Receipt rejected at inspection'), decided_at = COALESCE(decided_at, now())
 WHERE status = 'DEPOSITED' AND id IN (SELECT booking_id FROM enwrs WHERE status = 'REJECTED' AND booking_id IS NOT NULL);
+
+-- KYC (Aadhaar via DigiLocker through Setu). provider 'mock' issues dummy request ids until Setu is switched on.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS kyc_status TEXT NOT NULL DEFAULT 'NONE'; -- NONE | VERIFIED
+ALTER TABLE users ADD COLUMN IF NOT EXISTS kyc_verified_at TIMESTAMPTZ;
+CREATE TABLE IF NOT EXISTS kyc_records (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users (id),
+  provider TEXT NOT NULL,              -- mock | setu
+  request_id TEXT NOT NULL UNIQUE,     -- Setu DigiLocker request id (or mock-<uuid>)
+  status TEXT NOT NULL DEFAULT 'PENDING', -- PENDING | VERIFIED | FAILED
+  full_name TEXT,
+  date_of_birth TEXT,
+  gender TEXT,
+  aadhaar_last4 TEXT,                  -- only the last 4 digits are ever stored
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
