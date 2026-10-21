@@ -4,6 +4,9 @@
  * forwards them. Only DigiLocker paths are forwarded, only to Setu, and only for callers holding SETU_RELAY_KEY.
  * GET /setu-relay/health needs no key: it pings Setu without credentials to show whether Setu accepts this region.
  */
+// Node provides process at runtime; declared here so the project needs no @types/node
+declare const process: { env: Record<string, string | undefined> }
+
 const SETU = process.env.SETU_DIGILOCKER_BASE_URL ?? 'https://dg-sandbox.setu.co'
 const FORWARDED = ['x-client-id', 'x-client-secret', 'x-product-instance-id', 'content-type']
 
