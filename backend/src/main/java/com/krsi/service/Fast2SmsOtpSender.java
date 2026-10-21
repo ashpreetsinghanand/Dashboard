@@ -14,7 +14,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
- * Sends OTPs by SMS through Fast2SMS "Quick SMS" (route q: free text, no DLT template; about ₹5 per SMS).
+ * Sends OTPs by SMS through Fast2SMS "Quick SMS" (route q: free text, no DLT template; ₹7 per SMS on this account).
  * Without FAST2SMS_API_KEY it falls back to {@link LoggingOtpSender}, so local development needs no key.
  * shortcut: Quick SMS is the costly non-DLT route; switch to Fast2SMS Smart OTP (/dev/otp/send) once a DLT template is approved.
  */
