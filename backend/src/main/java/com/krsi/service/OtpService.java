@@ -19,6 +19,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Phone verification. Codes are stored only as salted SHA-256 hashes, expire after app.otp.ttl, allow
@@ -42,6 +43,8 @@ public class OtpService {
         this.config = properties.otp();
     }
 
+    // one transaction: if the SMS fails, the stored challenge rolls back, so the user is not told to wait for a code that never came
+    @Transactional
     public OtpSent send(String phone, OtpPurpose purpose) {
         boolean registered = users.existsByPhone(phone);
         if (purpose == OtpPurpose.SIGNUP && registered) throw ApiException.conflict("This phone number is already registered. Sign in instead.");

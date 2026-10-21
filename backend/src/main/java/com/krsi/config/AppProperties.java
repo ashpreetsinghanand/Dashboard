@@ -32,7 +32,8 @@ public record AppProperties(
             @DefaultValue("5") int maxAttempts,
             @DefaultValue("5") int maxSendsPerHour,
             @DefaultValue("true") boolean exposeInResponse,
-            @DefaultValue("15m") Duration verificationTtl) {}
+            @DefaultValue("15m") Duration verificationTtl,
+            String fast2smsApiKey) {}
 
     /** Commercial defaults. */
     public record Business(

@@ -33,6 +33,8 @@ app:
     # Local development: return the OTP in the /auth/otp/send response so the UI can be tested without SMS.
     expose-in-response: ${OTP_EXPOSE_IN_RESPONSE:true}
     verification-ttl: 15m
+    # Fast2SMS API key: OTPs go out by SMS when set; blank logs a masked line instead (local development).
+    fast2sms-api-key: ${FAST2SMS_API_KEY:}
   business:
     currency: ${CURRENCY:INR}
     receipt-validity-days: 180
