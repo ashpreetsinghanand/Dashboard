@@ -57,7 +57,8 @@ public record AppProperties(
             @DefaultValue("https://dg-sandbox.setu.co") String setuBaseUrl,
             String setuClientId,
             String setuClientSecret,
-            String setuProductInstanceId) {}
+            String setuProductInstanceId,
+            String setuRelayKey) {}
 
     /** Browser origins (the React app) allowed to call the API. */
     public record Cors(

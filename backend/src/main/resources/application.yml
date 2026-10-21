@@ -59,6 +59,8 @@ app:
     setu-client-id: ${SETU_CLIENT_ID:}
     setu-client-secret: ${SETU_CLIENT_SECRET:}
     setu-product-instance-id: ${SETU_PRODUCT_INSTANCE_ID:}
+    # Set with SETU_DIGILOCKER_BASE_URL=<dashboard>/setu-relay to send Setu calls through the Mumbai relay (Setu blocks non-Indian IPs).
+    setu-relay-key: ${SETU_RELAY_KEY:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 springdoc:

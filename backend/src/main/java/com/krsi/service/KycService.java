@@ -103,6 +103,7 @@ public class KycService {
                 .defaultHeader("x-client-id", settings.setuClientId())
                 .defaultHeader("x-client-secret", settings.setuClientSecret())
                 .defaultHeader("x-product-instance-id", settings.setuProductInstanceId())
+                .defaultHeaders(h -> { if (!blank(settings.setuRelayKey())) h.set("x-relay-key", settings.setuRelayKey()); })
                 .build();
         try {
             Map<String, Object> body = request.apply(client).retrieve().body(Map.class);
