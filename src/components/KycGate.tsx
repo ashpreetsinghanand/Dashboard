@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { api } from '../api/endpoints'
 import { useAction, useApi } from '../lib/useApi'
@@ -12,8 +12,10 @@ export function KycGate({ onClose, children }: { onClose: () => void; children: 
   const kyc = useApi(() => api.kyc.status(), [])
   const start = useAction(api.kyc.start)
   const location = useLocation()
+  const [skipped, setSkipped] = useState(false)
 
-  if (kyc.data?.status === 'VERIFIED') return <>{children}</>
+  // while KYC is optional, nobody is blocked: a Setu outage or a user without DigiLocker can still book
+  if (kyc.data?.status === 'VERIFIED' || skipped) return <>{children}</>
 
   async function verify() {
     const started = await start.run(`${window.location.origin}/kyc/callback`)
@@ -43,9 +45,15 @@ export function KycGate({ onClose, children }: { onClose: () => void; children: 
             <ErrorBanner error={start.error} />
           </div>
           <div className="mt-5 flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="h-10 rounded-[8px] border border-[#D0D5DD] px-4 text-[14px]">
-              Not now
-            </button>
+            {kyc.data?.requiredForBooking ? (
+              <button type="button" onClick={onClose} className="h-10 rounded-[8px] border border-[#D0D5DD] px-4 text-[14px]">
+                Not now
+              </button>
+            ) : (
+              <button type="button" onClick={() => setSkipped(true)} className="h-10 rounded-[8px] border border-[#D0D5DD] px-4 text-[14px]">
+                Continue without KYC
+              </button>
+            )}
             <button
               type="button"
               onClick={() => void verify()}

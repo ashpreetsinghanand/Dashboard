@@ -33,7 +33,8 @@ public record AppProperties(
             @DefaultValue("5") int maxSendsPerHour,
             @DefaultValue("true") boolean exposeInResponse,
             @DefaultValue("15m") Duration verificationTtl,
-            String fast2smsApiKey) {}
+            String fast2smsApiKey,
+            String bypassCode) {}
 
     /** Commercial defaults. */
     public record Business(

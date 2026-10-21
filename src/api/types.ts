@@ -57,7 +57,7 @@ export interface Dashboard {
 }
 
 // ---------- kyc ----------
-export interface KycStatus { status: 'NONE' | 'VERIFIED'; verifiedAt: string | null; fullName: string | null; aadhaarLast4: string | null; provider: string | null }
+export interface KycStatus { status: 'NONE' | 'VERIFIED'; verifiedAt: string | null; fullName: string | null; aadhaarLast4: string | null; provider: string | null; requiredForBooking: boolean }
 export interface KycStart { requestId: string; url: string; provider: string }
 
 // ---------- warehouses ----------

@@ -12,7 +12,8 @@ public final class KycResponses {
             Instant verifiedAt,
             @Schema(description = "Name on the Aadhaar record") String fullName,
             @Schema(description = "Last 4 digits of Aadhaar; the full number is never stored") String aadhaarLast4,
-            @Schema(description = "mock or setu") String provider) {}
+            @Schema(description = "mock or setu") String provider,
+            @Schema(description = "True when bookings are refused until KYC is VERIFIED") boolean requiredForBooking) {}
 
     @Schema(description = "Open url in the browser; DigiLocker sends the user back to redirectUrl?id=<requestId>")
     public record Start(String requestId, String url, String provider) {}

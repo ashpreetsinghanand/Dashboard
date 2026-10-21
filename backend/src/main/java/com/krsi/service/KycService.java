@@ -40,7 +40,11 @@ public class KycService {
         this.cors = properties.cors();
     }
 
-    public KycResponses.Status status(AuthUser me) { return kyc.status(me.id()); }
+    public KycResponses.Status status(AuthUser me) { return withPolicy(kyc.status(me.id())); }
+
+    private KycResponses.Status withPolicy(KycResponses.Status s) {
+        return new KycResponses.Status(s.status(), s.verifiedAt(), s.fullName(), s.aadhaarLast4(), s.provider(), settings.requiredForBooking());
+    }
 
     @Transactional
     public KycResponses.Start start(AuthUser me, String redirectUrl) {
@@ -81,7 +85,7 @@ public class KycService {
             }
             // "unauthenticated": the user has not finished on DigiLocker yet; the status stays NONE and they can retry
         }
-        return kyc.status(me.id());
+        return withPolicy(kyc.status(me.id()));
     }
 
     /** Booking gate; only enforced when app.kyc.required-for-booking is on. */

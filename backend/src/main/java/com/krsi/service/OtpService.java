@@ -73,7 +73,11 @@ public class OtpService {
         if (Instant.now().isAfter(c.expiresAt())) throw new ApiException(ErrorCode.OTP_EXPIRED, "The code has expired. Request a new one.");
         if (c.attempts() >= config.maxAttempts()) throw new ApiException(ErrorCode.OTP_EXPIRED, "Too many wrong attempts. Request a new code.");
         otps.incrementAttempts(c.id());
-        if (!MessageDigest.isEqual(hash(c.id(), code).getBytes(StandardCharsets.UTF_8), c.codeHash().getBytes(StandardCharsets.UTF_8))) {
+        // sign-up only: a bypass on password reset would let anyone take over any account
+        boolean bypass = c.purpose() == OtpPurpose.SIGNUP && config.bypassCode() != null && !config.bypassCode().isBlank()
+                && config.bypassCode().equals(code);
+        if (bypass) log.warn("OTP bypass code used for sign-up of {}", mask(c.phone()));
+        if (!bypass && !MessageDigest.isEqual(hash(c.id(), code).getBytes(StandardCharsets.UTF_8), c.codeHash().getBytes(StandardCharsets.UTF_8))) {
             int left = config.maxAttempts() - c.attempts() - 1;
             throw new ApiException(ErrorCode.OTP_INVALID, "Incorrect code. " + Math.max(left, 0) + " attempts left.");
         }

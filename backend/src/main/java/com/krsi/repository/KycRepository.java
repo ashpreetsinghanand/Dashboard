@@ -18,7 +18,7 @@ public class KycRepository {
                 LEFT JOIN LATERAL (SELECT full_name, aadhaar_last4, provider FROM kyc_records
                                    WHERE user_id = u.id AND status = 'VERIFIED' ORDER BY id DESC LIMIT 1) r ON true
                 WHERE u.id = ?""", (rs, i) -> new KycResponses.Status(rs.getString("kyc_status"), Rows.instant(rs, "kyc_verified_at"),
-                rs.getString("full_name"), rs.getString("aadhaar_last4"), rs.getString("provider")), userId);
+                rs.getString("full_name"), rs.getString("aadhaar_last4"), rs.getString("provider"), false), userId);
     }
 
     public boolean isVerified(long userId) {
