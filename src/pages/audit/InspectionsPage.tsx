@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { api } from '../../api/endpoints'
 import type { Enwr, InspectionRequest } from '../../api/types'
+import { hasMetaMask } from '../../chain/metamask'
+import { EnwrOnChainStep } from '../../components/ChainSteps'
 import { RequestLayout, StatusPill } from '../../components/RequestLayout'
 import { ErrorBanner, FieldError, Modal } from '../../components/ui'
 import { useToast } from '../../components/Toast'
@@ -91,6 +93,7 @@ function InspectForm({ receipt, onDone, onFailed }: { receipt: Enwr; onDone: (me
   const [moisture, setMoisture] = useState(receipt.moisturePct?.toString() ?? '')
   const [foreign, setForeign] = useState(receipt.foreignMatterPct?.toString() ?? '')
   const [remarks, setRemarks] = useState('')
+  const [approved, setApproved] = useState<Enwr>()
   const inspect = useAction((body: InspectionRequest) => api.enwrs.inspect(receipt.id, body))
   const num = (v: string) => (v.trim() === '' ? undefined : Number(v))
 
@@ -103,9 +106,13 @@ function InspectForm({ receipt, onDone, onFailed }: { receipt: Enwr; onDone: (me
       foreignMatterPct: num(foreign),
       remarks: remarks.trim() || undefined,
     })
-    if (result) onDone(`${result.receiptNo} is now ${statusLabel(result.status)}.`)
-    else onFailed()
+    if (!result) return onFailed()
+    // the approval is saved; with MetaMask the auditor can now put the receipt on chain
+    if (decision === 'APPROVE' && hasMetaMask()) setApproved(result)
+    else onDone(`${result.receiptNo} is now ${statusLabel(result.status)}.`)
   }
+
+  if (approved) return <EnwrOnChainStep enwr={approved} onDone={() => onDone(`${approved.receiptNo} is now ${statusLabel(approved.status)}.`)} />
 
   return (
     <form onSubmit={submit} className="grid gap-3 text-[13px]">

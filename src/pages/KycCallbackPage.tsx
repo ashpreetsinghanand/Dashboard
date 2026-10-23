@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/endpoints'
 import { DashboardShell } from '../components/DashboardShell'
+import { hasMetaMask } from '../chain/metamask'
+import { KycOnChainCard } from '../components/ChainSteps'
 import { KYC_KEY } from '../components/KycGate'
 import { useToast } from '../components/Toast'
 import { ErrorBanner } from '../components/ui'
@@ -37,7 +39,7 @@ export function KycCallbackPage() {
       /* ignore */
     }
     toast('Identity verified with DigiLocker.')
-    navigate(next, { replace: true })
+    if (!hasMetaMask()) navigate(next, { replace: true }) // with MetaMask, stay so the KYC can go on chain first
   }, [result.data, next, navigate, toast])
 
   return (
@@ -66,7 +68,16 @@ export function KycCallbackPage() {
               </div>
             </>
           ) : null}
+          {result.data?.status === 'VERIFIED' ? (
+            <>
+              <p className="mt-3 text-[14px] font-medium text-[#1F8955]">Identity verified ✓</p>
+              <Link to={next} className="mt-4 inline-grid h-10 place-items-center rounded-[8px] bg-[#1F8955] px-4 text-[14px] font-medium text-white">
+                Continue to booking
+              </Link>
+            </>
+          ) : null}
         </section>
+        {result.data?.status === 'VERIFIED' ? <KycOnChainCard /> : null}
       </main>
     </DashboardShell>
   )

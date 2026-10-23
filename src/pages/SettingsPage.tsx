@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api } from '../api/endpoints'
 import { useAuth } from '../auth/AuthContext'
+import { KycOnChainCard } from '../components/ChainSteps'
 import { DashboardShell } from '../components/DashboardShell'
 import { ErrorBanner, FieldError } from '../components/ui'
 import { useAction, useApi } from '../lib/useApi'
@@ -122,6 +123,7 @@ export function SettingsPage() {
             ) : null}
           </div>
         </form>
+        <KycOnChainCard />
       </main>
     </DashboardShell>
   )
