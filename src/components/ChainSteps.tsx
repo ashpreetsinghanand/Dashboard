@@ -54,6 +54,10 @@ export function KycOnChainCard() {
   const sign = () =>
     step(async () => {
       const [onchain] = await chain()
+      const { addresses } = await import('../chain/krsiChain')
+      // the credential binds this KRSI user to the wallet for good, so never to KRSI's own signing accounts
+      if ([addresses.issuer, addresses.auditor].some((a) => a.toLowerCase() === wallet!.toLowerCase()))
+        throw new Error("That's the KRSI issuer/auditor account. Select your own MetaMask account and click Change first.")
       setHash(await onchain.putKycOnChain(user, kyc.data!, wallet!))
       setOnChain(wallet!)
     })

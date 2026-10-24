@@ -119,7 +119,14 @@ async function send(
   call: { account: Hex; address: Hex; abi: Abi; functionName: string; args: readonly unknown[] },
 ): Promise<Hex> {
   const { request } = await clients.public.simulateContract({ ...call, chain: arbitrumSepolia })
-  const hash = await clients.wallet.writeContract(request)
+  // KRSI change to the kit: Arbitrum's base fee moves between estimate and send ("max fee per gas less than block
+  // base fee"), so cap at 2x; Arbitrum charges the actual base fee, so the headroom costs nothing.
+  const fees = await clients.public.estimateFeesPerGas()
+  const hash = await clients.wallet.writeContract({
+    ...request,
+    maxFeePerGas: fees.maxFeePerGas * 2n,
+    maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
+  } as typeof request)
   const receipt = await clients.public.waitForTransactionReceipt({ hash })
   if (receipt.status !== 'success') throw new Error(`Transaction ${hash} failed`)
   return hash
