@@ -24,6 +24,7 @@ import {
   userRef,
   type ApiReceipt,
 } from './krsiChain'
+import { metaMaskProvider } from './metamask'
 
 const ROLE_CODE: Record<string, number> = { FARMER: 1, MERCHANT: 2, WAREHOUSE_OWNER: 3 }
 
@@ -90,9 +91,11 @@ export async function putEnwrOnChain(
 // ---------- internals ----------
 
 function metaMask(): Clients {
-  if (typeof window === 'undefined' || !window.ethereum) throw new Error('MetaMask is not installed')
+  // KRSI change to the kit: MetaMask by EIP-6963, so another wallet extension can't intercept (see metamask.ts)
+  const provider = metaMaskProvider()
+  if (!provider) throw new Error('MetaMask is not installed')
   return {
-    wallet: createWalletClient({ chain: arbitrumSepolia, transport: custom(window.ethereum) }),
+    wallet: createWalletClient({ chain: arbitrumSepolia, transport: custom(provider) }),
     public: createPublicClient({ chain: arbitrumSepolia, transport: http() }),
   }
 }

@@ -3,13 +3,15 @@ import { BaseError, ContractFunctionRevertedError, createPublicClient, http, zer
 import { arbitrumSepolia } from 'viem/chains'
 import resolverAbi from './abis/KrsiKycResolver.json'
 import { addresses, userRef } from './krsiChain'
+import { metaMaskProvider } from './metamask'
 
 const reader = createPublicClient({ chain: arbitrumSepolia, transport: http() })
 
 /** The MetaMask account selected right now (asks to connect the site if needed). */
 export async function connectWallet(): Promise<Hex> {
-  if (!window.ethereum) throw new Error('MetaMask is not installed')
-  const [account] = (await window.ethereum.request({ method: 'eth_requestAccounts' })) as Hex[]
+  const provider = metaMaskProvider()
+  if (!provider) throw new Error('MetaMask is not installed')
+  const [account] = (await provider.request({ method: 'eth_requestAccounts' })) as Hex[]
   if (!account) throw new Error('No MetaMask account is selected')
   return account
 }
